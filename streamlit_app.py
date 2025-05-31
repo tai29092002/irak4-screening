@@ -145,3 +145,55 @@ if "df_standardized" in st.session_state:
             st.dataframe(raw_pains)
 else:
     st.warning("⚠️ Please complete the 'Standardize' step first.")
+
+# === 5. ECFP4-2048 ===
+import numpy as np
+from rdkit.Chem import AllChem
+from tqdm.auto import tqdm
+tqdm.pandas()
+st.header("Step 4: Compute ECFP4 Fingerprints")
+
+if "df_select" not in st.session_state:
+    if "raw_pains" in locals():  # Nếu bạn chưa lưu df_select thì lấy từ raw_pains
+        df_select = raw_pains.copy()
+        st.session_state.df_select = df_select
+    else:
+        st.warning("⚠️ Please complete PAINS filtering first.")
+        st.stop()
+else:
+    df_select = st.session_state.df_select
+
+# Kiểm tra cột standardized
+if "standardized" not in df_select.columns:
+    st.error("❌ 'standardized' column not found in df_select.")
+    st.stop()
+
+# Hàm fingerprint
+def smiles_to_ecfp4(smiles):
+    try:
+        mol = Chem.MolFromSmiles(smiles)
+        if mol:
+            fp = AllChem.GetMorganFingerprintAsBitVect(mol, radius=2, nBits=2048)
+            arr = np.zeros((2048,), dtype=int)
+            AllChem.DataStructs.ConvertToNumpyArray(fp, arr)
+            return arr
+        else:
+            return np.full(2048, np.nan)
+    except:
+        return np.full(2048, np.nan)
+
+if st.button("Generate ECFP4 Fingerprints"):
+    with st.spinner("🔬 Generating ECFP4 fingerprints..."):
+        ecfp4_matrix = df_select['standardized'].progress_apply(smiles_to_ecfp4)
+        ecfp4_df2048 = pd.DataFrame(ecfp4_matrix.tolist(),
+                                     columns=[f'bit_{i}' for i in range(2048)])
+
+        df_split = pd.concat([
+            df_select[['ID', 'standardized']].reset_index(drop=True),
+            ecfp4_df2048.reset_index(drop=True)
+        ], axis=1)
+
+        st.session_state.df_split = df_split  # Lưu lại nếu cần sau
+        st.success("✅ ECFP4 fingerprints computed successfully.")
+        st.dataframe(df_split)
+
