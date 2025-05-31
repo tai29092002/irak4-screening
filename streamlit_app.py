@@ -1,9 +1,12 @@
 import streamlit as st
+import pickle
+import numpy as np
 import pandas as pd
 from rdkit import Chem
 from rdkit.Chem.MolStandardize import rdMolStandardize
 from tqdm.auto import tqdm
-
+from rdkit.Chem import FilterCatalog
+from rdkit.Chem import AllChem
 st.title('🎈 IRAK4 SCREENING')
 st.info('This is an app built for predicting IRAK4 inhibitors')
 
@@ -89,9 +92,6 @@ else:
     st.info("👉 Please complete Step 1 first.")
 
 # === 4. PAINS-FILTER (no download) ===
-from rdkit import Chem
-from rdkit.Chem import FilterCatalog
-
 st.header("Step 3: PAINS Filtering")
 
 if "df_standardized" in st.session_state:
@@ -147,9 +147,6 @@ else:
     st.warning("⚠️ Please complete the 'Standardize' step first.")
 
 # === 5. ECFP4-2048 ===
-import numpy as np
-from rdkit.Chem import AllChem
-from tqdm.auto import tqdm
 tqdm.pandas()
 
 st.header("Step 4: Compute ECFP4 Fingerprints")
