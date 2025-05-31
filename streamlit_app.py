@@ -201,6 +201,8 @@ if st.button("Generate ECFP4 Fingerprints"):
 # === 6.BINARY SCREENING ===
 import pickle
 import numpy as np
+import pandas as pd
+import streamlit as st
 
 st.header("Step 5: Predict IRAK4 Inhibition (Binary Classification)")
 
@@ -209,20 +211,20 @@ if "df_split" not in st.session_state:
     st.warning("⚠️ Please generate ECFP4 fingerprints first.")
     st.stop()
 else:
-    data = st.session_state.df_split.copy()
-    
-if "data" in st.session_state and st.button("Run Prediction"):
+    data = st.session_state.df_split.copy()  # <- fingerprinted data
+
+# Nút dự đoán
+if st.button("Run Prediction"):
     try:
+        # Load model
         with open('model/rf_binary_813_tuned.pkl', 'rb') as file:
             rf_model = pickle.load(file)
 
-        data = st.session_state.data.copy()
+        # Dự đoán
         X = data.drop(['ID', 'standardized'], axis=1)
-
-        # Predict probabilities
         probabilities = rf_model.predict_proba(X)[:, 1]
 
-        # Final result only with essential columns
+        # Kết quả chỉ gồm 4 cột cần thiết
         screening = pd.DataFrame({
             'ID': data['ID'],
             'standardized': data['standardized'],
@@ -230,13 +232,15 @@ if "data" in st.session_state and st.button("Run Prediction"):
             'label': np.where(probabilities >= 0.5, 1, 0)
         })
 
+        # Lưu vào session để dùng sau nếu cần
         st.session_state.result = screening
 
+        # Hiển thị kết quả
         st.success("✅ Prediction complete.")
         st.subheader("Prediction Summary")
         st.dataframe(screening)
 
-        # Optional: show only label == 1
+        # Lọc ra những phân tử có hoạt tính (label = 1)
         st.subheader("Filtered (label = 1)")
         st.dataframe(screening[screening['label'] == 1])
 
@@ -244,5 +248,3 @@ if "data" in st.session_state and st.button("Run Prediction"):
         st.error("❌ Model file not found. Please check the path.")
     except Exception as e:
         st.error(f"❌ Error during prediction: {e}")
-
-
