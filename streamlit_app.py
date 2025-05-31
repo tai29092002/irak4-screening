@@ -85,7 +85,7 @@ def standardize_smiles(batch):
 
     return standardized_list
 
-df_standardized = df_new.copy()
+df_standardized = st.session_state.df_new.copy()
 
 standardized_list = standardize_smiles(df_standardized['SMILES'])
 df_standardized['standardized'] = standardized_list
