@@ -196,7 +196,7 @@ if st.button("Generate ECFP4 Fingerprints"):
         st.success("✅ ECFP4 fingerprints computed and stored.")
 
 # === 6. SCREENING ===
-st.header("Step 5: IRAK4 Screening (Binary + Regression Prediction)")
+st.header("Step 5: IRAK4 QSAR Screening")
 
 # Đảm bảo fingerprint đã được tính
 if "df_split" not in st.session_state:
