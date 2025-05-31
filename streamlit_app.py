@@ -211,12 +211,12 @@ if "df_split" not in st.session_state:
     st.warning("⚠️ Please generate ECFP4 fingerprints first.")
     st.stop()
 else:
-    data = st.session_state.df_split.copy()  # <- fingerprinted data
+    data = st.session_state.df_split.copy()
 
-# Nút dự đoán
+# Nút chạy dự đoán
 if st.button("Run Prediction"):
     try:
-        # Load model
+        # Load mô hình
         with open('model/rf_binary_813_tuned.pkl', 'rb') as file:
             rf_model = pickle.load(file)
 
@@ -224,7 +224,7 @@ if st.button("Run Prediction"):
         X = data.drop(['ID', 'standardized'], axis=1)
         probabilities = rf_model.predict_proba(X)[:, 1]
 
-        # Kết quả chỉ gồm 4 cột cần thiết
+        # Kết quả chỉ gồm 4 cột
         screening = pd.DataFrame({
             'ID': data['ID'],
             'standardized': data['standardized'],
@@ -232,15 +232,11 @@ if st.button("Run Prediction"):
             'label': np.where(probabilities >= 0.5, 1, 0)
         })
 
-        # Lưu vào session để dùng sau nếu cần
         st.session_state.result = screening
 
-        # Hiển thị kết quả
         st.success("✅ Prediction complete.")
-        st.subheader("Prediction Summary")
-        st.dataframe(screening)
 
-        # Lọc ra những phân tử có hoạt tính (label = 1)
+        # Chỉ hiển thị các phân tử có label = 1
         st.subheader("Filtered (label = 1)")
         st.dataframe(screening[screening['label'] == 1])
 
