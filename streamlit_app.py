@@ -85,7 +85,13 @@ def standardize_smiles(batch):
 
     return standardized_list
 
-df_standardized = st.session_state.df_new.copy()
+if "df_new" in st.session_state:
+    df_standardized = st.session_state.df_new.copy()
+    st.session_state.df_standardized = df_standardized  # Lưu nếu cần dùng tiếp
+    st.success("✅ DataFrame copied successfully.")
+    st.dataframe(df_standardized)
+else:
+    st.warning("⚠️ Please complete the 'Create' step first.")
 
 standardized_list = standardize_smiles(df_standardized['SMILES'])
 df_standardized['standardized'] = standardized_list
