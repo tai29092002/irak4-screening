@@ -229,7 +229,7 @@ if st.button("Run Prediction"):
         st.dataframe(screening_bin[screening_bin['label'] == 1][['ID', 'standardized', 'label_prob', 'label']])
 
         # === Regression Prediction ===
-        with open('model/xgb_regression_764_tuned.pkl', 'rb') as file:
+        with open('model1/xgb_regression_764_tuned.pkl', 'rb') as file:
             xgb_model = pickle.load(file)
 
         X_reg = data.drop(['ID', 'standardized'], axis=1)
