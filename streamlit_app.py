@@ -246,6 +246,10 @@ if st.button("Run Prediction"):
         st.error(f"❌ Error during prediction: {e}")
 
 # === 7.REGRESSION SCREENING ===
+import pickle
+import numpy as np
+import pandas as pd
+
 st.header("Step 6: Predict IRAK4 Activity (Regression Model)")
 
 # Đảm bảo fingerprint đã được tạo từ df_split
@@ -285,3 +289,13 @@ if st.button("Run Regression Model"):
 
         # Lưu vào session
         st.session_state.result_reg = screening_reg.copy()
+
+        # Hiển thị kết quả lọc theo nhãn
+        st.success("✅ Regression prediction complete.")
+        st.subheader("Predicted Active Compounds (from Regression)")
+        st.dataframe(screening_reg[screening_reg['label'] == 1][['ID', 'standardized', 'predicted_pIC50', 'label']])
+
+    except FileNotFoundError:
+        st.error("❌ Regression model file not found. Please check the path.")
+    except Exception as e:
+        st.error(f"❌ Error during regression prediction: {e}")
