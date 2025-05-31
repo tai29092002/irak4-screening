@@ -5,5 +5,5 @@ seaborn
 matplotlib
 ipywidgets
 scikit-learn
-rdkit==2022.09.1
+rdkit==2025.3.2
 tqdm
