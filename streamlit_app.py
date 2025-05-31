@@ -244,3 +244,44 @@ if st.button("Run Prediction"):
         st.error("❌ Model file not found. Please check the path.")
     except Exception as e:
         st.error(f"❌ Error during prediction: {e}")
+
+# === 7.REGRESSION SCREENING ===
+st.header("Step 6: Predict IRAK4 Activity (Regression Model)")
+
+# Đảm bảo fingerprint đã được tạo từ df_split
+if "df_split" not in st.session_state:
+    st.warning("⚠️ Please generate ECFP4 fingerprints first.")
+    st.stop()
+else:
+    data_reg = st.session_state.df_split.copy()
+
+# Nút chạy mô hình hồi quy
+if st.button("Run Regression Model"):
+    try:
+        # Load mô hình hồi quy
+        with open('/content/drive/MyDrive/Lab314/KLTN/IRAK4/model/xgb_regression_764_tuned.pkl', 'rb') as file:
+            xgb_model = pickle.load(file)
+
+        # Chuẩn bị dữ liệu đầu vào
+        X_reg = data_reg.drop(['ID', 'standardized'], axis=1)
+
+        # Dự đoán pIC50
+        predicted_pIC50 = xgb_model.predict(X_reg)
+
+        # Tạo bảng kết quả
+        screening_reg = pd.DataFrame({
+            'ID': data_reg['ID'],
+            'standardized': data_reg['standardized'],
+            'predicted_pIC50': np.round(predicted_pIC50, 4)
+        })
+
+        # Xác định ngưỡng label từ IC50 = 8 nM
+        IC50_nM = 8
+        IC50_M = IC50_nM * 1e-9
+        base_pIC50 = -np.log10(IC50_M)
+
+        # Gán nhãn: 1 nếu pIC50 >= ngưỡng
+        screening_reg['label'] = (screening_reg['predicted_pIC50'] >= base_pIC50).astype(int)
+
+        # Lưu vào session
+        st.session_state.result_reg = screening_reg.copy()
