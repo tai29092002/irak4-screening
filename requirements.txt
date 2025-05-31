@@ -3,6 +3,6 @@ numpy
 pandas
 rdkit
 seaborn
-matplotlib.pyplot
+matplotlib
 ipywidgets
 scikit-learn
