@@ -238,16 +238,17 @@ if st.button("Run Prediction"):
             st.subheader("Label Distribution")
             st.dataframe(label_counts)
 
-            # Hiển thị các phân tử có nhãn 1
-            df_label = screening[screening['label'] == 1]
-            st.subheader("Positive Predictions (label = 1)")
-            st.dataframe(df_label)
-            
-            # Chỉ giữ lại các cột quan trọng để hiển thị
-            columns_to_show = ['ID', 'standardized', 'label_prob', 'label']
-            result = screening[columns_to_show]
-            st.session_state.result = result  # Lưu kết quả gọn
+            screening = data[['ID', 'standardized']].copy()
+            screening['label_prob'] = np.round(probs, 4)
+            screening['label'] = np.where(screening['label_prob'] >= 0.5, 1, 0)
 
+            # Lưu lại để sử dụng sau
+            st.session_state.result = screening
+
+            # Hiển thị kết quả cuối cùng — đầy đủ 4 cột
+            st.success("✅ Prediction complete.")
+            st.subheader("Prediction Summary")
+            st.dataframe(screening)  # ← hiển thị đầy đủ cả ID và standardized
 
     except FileNotFoundError:
         st.error("❌ Model file not found. Please check the path to the .pkl model.")
