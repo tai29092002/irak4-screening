@@ -87,3 +87,61 @@ if "df_new" in st.session_state:
                 st.dataframe(df_standardized)
 else:
     st.info("👉 Please complete Step 1 first.")
+
+# === 4. PAINS-FILTER (no download) ===
+from rdkit import Chem
+from rdkit.Chem import FilterCatalog
+
+st.header("Step 3: PAINS Filtering")
+
+if "df_standardized" in st.session_state:
+    df_pains = st.session_state.df_standardized.copy()
+
+    # Đảm bảo cột chuẩn hóa tồn tại
+    if "Standardized_SMILES" not in df_pains.columns:
+        st.error("❌ 'Standardized_SMILES' column not found.")
+    else:
+        # Đổi tên cột để phù hợp xử lý
+        df_pains.rename(columns={"Standardized_SMILES": "standardized"}, inplace=True)
+
+        # Kiểm tra có cột ID
+        if "ID" not in df_pains.columns:
+            st.error("❌ 'ID' column not found.")
+        else:
+            # Tạo catalog PAINS
+            params = FilterCatalog.FilterCatalogParams()
+            params.AddCatalog(FilterCatalog.FilterCatalogParams.FilterCatalogs.PAINS)
+            catalog = FilterCatalog.FilterCatalog(params)
+
+            matches = []
+            clean = []
+
+            for index, row in tqdm(df_pains.iterrows(), total=df_pains.shape[0]):
+                molecule = Chem.MolFromSmiles(row['standardized'])
+                if molecule is None:
+                    continue
+                entry = catalog.GetFirstMatch(molecule)
+                if entry is not None:
+                    matches.append({
+                        "ID": row['ID'],
+                        "standardized": row['standardized'],
+                        "PAINS": entry.GetDescription().capitalize(),
+                    })
+                else:
+                    clean.append(index)
+
+            matches_df = pd.DataFrame(matches)
+            raw_pains = df_pains.loc[clean]
+
+            # Hiển thị kết quả
+            st.subheader("PAINS Matches")
+            if not matches_df.empty:
+                st.success(f"✅ {len(matches_df)} molecules matched PAINS filters.")
+                st.dataframe(matches_df)
+            else:
+                st.success("✅ No PAINS alerts found.")
+
+            st.subheader("Clean Molecules (No PAINS)")
+            st.dataframe(raw_pains)
+else:
+    st.warning("⚠️ Please complete the 'Standardize' step first.")
