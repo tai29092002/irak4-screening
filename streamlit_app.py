@@ -211,25 +211,23 @@ if "df_split" not in st.session_state:
 else:
     data = st.session_state.df_split.copy()
     
-st.header("Step 5: Predict IRAK4 Activity")
 if "data" in st.session_state and st.button("Run Prediction"):
     try:
-        with open('model/rf_binary_813_tuned.pkl', 'rb') as f:
-            rf_model = pickle.load(f)
+        with open('model/rf_binary_813_tuned.pkl', 'rb') as file:
+            rf_model = pickle.load(file)
 
         data = st.session_state.data.copy()
         X = data.drop(['ID', 'standardized'], axis=1)
 
-        # Dự đoán xác suất
-        probs = rf_model.predict_proba(X)[:, 1]
-        labels = np.where(probs >= 0.5, 1, 0)
+        # Predict probabilities
+        probabilities = rf_model.predict_proba(X)[:, 1]
 
-        # Tạo bảng kết quả chỉ gồm các cột cần hiển thị
+        # Final result only with essential columns
         screening = pd.DataFrame({
             'ID': data['ID'],
             'standardized': data['standardized'],
-            'label_prob': np.round(probs, 4),
-            'label': labels
+            'label_prob': np.round(probabilities, 4),
+            'label': np.where(probabilities >= 0.5, 1, 0)
         })
 
         st.session_state.result = screening
@@ -238,9 +236,13 @@ if "data" in st.session_state and st.button("Run Prediction"):
         st.subheader("Prediction Summary")
         st.dataframe(screening)
 
+        # Optional: show only label == 1
+        st.subheader("Filtered (label = 1)")
+        st.dataframe(screening[screening['label'] == 1])
+
     except FileNotFoundError:
         st.error("❌ Model file not found. Please check the path.")
     except Exception as e:
-        st.error(f\"❌ Error during prediction: {e}\")
+        st.error(f"❌ Error during prediction: {e}")
 
 
