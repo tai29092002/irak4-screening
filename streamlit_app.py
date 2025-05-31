@@ -209,7 +209,7 @@ if "data" not in st.session_state:
     st.warning("⚠️ Please generate ECFP4 fingerprints first.")
     st.stop()
 else:
-    data = st.session_state.data.copy()
+    data = st.session_state.df_split.copy()
 
 # Nút để chạy mô hình
 if st.button("Run Prediction"):
