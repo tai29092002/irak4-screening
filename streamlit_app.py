@@ -196,7 +196,7 @@ if st.button("Generate ECFP4 Fingerprints"):
         st.success("✅ ECFP4 fingerprints computed and stored.")
 
 # === 6. SCREENING ===
-st.header("Step 5: IRAK4 Model Screening")
+st.header("Step 5: IRAK4 Screening (Binary + Regression Prediction)")
 
 # Đảm bảo fingerprint đã được tính
 if "df_split" not in st.session_state:
@@ -222,7 +222,7 @@ if st.button("Run Prediction"):
             'label': np.where(prob_bin >= 0.5, 1, 0)
         })
 
-        st.session_state.result_bin = screening_bin.copy()
+        st.session_state.result = screening_bin.copy()
 
         st.success("✅ Binary prediction complete.")
         st.subheader("Binary Predicted Actives")
@@ -253,12 +253,7 @@ if st.button("Run Prediction"):
         st.subheader("Regression Predicted Actives")
         st.dataframe(screening_reg[screening_reg['label'] == 1][['ID', 'standardized', 'predicted_pIC50', 'label']])
 
-    except FileNotFoundError:
-        st.error("❌ One or more model files not found. Please check the paths.")
-    except Exception as e:
-        st.error(f"❌ Error during prediction: {e}")
-
-# === Consensus Actives ===
+        # === Consensus Actives ===
         actives_bin = screening_bin[screening_bin['label'] == 1]
         actives_reg = screening_reg[screening_reg['label'] == 1]
 
