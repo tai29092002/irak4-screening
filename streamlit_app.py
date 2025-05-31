@@ -210,48 +210,37 @@ if "df_split" not in st.session_state:
     st.stop()
 else:
     data = st.session_state.df_split.copy()
-
-# Nút để chạy mô hình
-if st.button("Run Prediction"):
+    
+st.header("Step 5: Predict IRAK4 Activity")
+if "data" in st.session_state and st.button("Run Prediction"):
     try:
-        with st.spinner("🔍 Loading model and predicting..."):
-            # Load mô hình từ file .pkl
-            with open('model/rf_binary_813_tuned.pkl', 'rb') as file:
-                rf_model = pickle.load(file)
+        with open('model/rf_binary_813_tuned.pkl', 'rb') as f:
+            rf_model = pickle.load(f)
 
-            # Lấy features đầu vào
-            X = data.drop(['ID', 'standardized'], axis=1)
+        data = st.session_state.data.copy()
+        X = data.drop(['ID', 'standardized'], axis=1)
 
-            # Dự đoán
-            probabilities = rf_model.predict_proba(X)[:, 1]
-            screening = data.copy()
-            screening['label_prob'] = np.round(probabilities, 4)
-            screening['label'] = np.where(screening['label_prob'] >= 0.5, 1, 0)
+        # Dự đoán xác suất
+        probs = rf_model.predict_proba(X)[:, 1]
+        labels = np.where(probs >= 0.5, 1, 0)
 
-            # Gán kết quả vào session
-            st.session_state.result = screening
+        # Tạo bảng kết quả chỉ gồm các cột cần hiển thị
+        screening = pd.DataFrame({
+            'ID': data['ID'],
+            'standardized': data['standardized'],
+            'label_prob': np.round(probs, 4),
+            'label': labels
+        })
 
-            # Thống kê nhãn
-            label_counts = screening['label'].value_counts().rename_axis('label').reset_index(name='count')
+        st.session_state.result = screening
 
-            st.success("✅ Prediction completed.")
-            st.subheader("Label Distribution")
-            st.dataframe(label_counts)
-
-            screening = data[['ID', 'standardized']].copy()
-            screening['label_prob'] = np.round(probs, 4)
-            screening['label'] = np.where(screening['label_prob'] >= 0.5, 1, 0)
-
-            # Lưu lại để sử dụng sau
-            st.session_state.result = screening
-
-            # Hiển thị kết quả cuối cùng — đầy đủ 4 cột
-            st.success("✅ Prediction complete.")
-            st.subheader("Prediction Summary")
-            st.dataframe(screening)  # ← hiển thị đầy đủ cả ID và standardized
+        st.success("✅ Prediction complete.")
+        st.subheader("Prediction Summary")
+        st.dataframe(screening)
 
     except FileNotFoundError:
-        st.error("❌ Model file not found. Please check the path to the .pkl model.")
+        st.error("❌ Model file not found. Please check the path.")
     except Exception as e:
-        st.error(f"❌ An error occurred: {e}")
+        st.error(f\"❌ Error during prediction: {e}\")
+
 
