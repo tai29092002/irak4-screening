@@ -53,52 +53,12 @@ if st.button("Create"):
             st.error(f"Error processing file: {e}")
 
 import streamlit as st
-import pandas as pd
-import io
 from rdkit import Chem
 from rdkit.Chem import rdMolStandardize
+import pandas as pd
 from tqdm.auto import tqdm
 
-# Set up Streamlit
-st.title("Upload and Standardize SMILES")
-
-# === 1. Upload and column selection ===
-uploaded_file = st.file_uploader("Upload a CSV or TXT file", type=['csv', 'txt'])
-
-id_col = st.text_input("ID column (optional)", value="", placeholder="Molecule_Name")
-smiles_col = st.text_input("SMILES column (required)", value="", placeholder="SMILES")
-
-# Global df_new for processing
-df_new = None
-
-if st.button("Create"):
-    if uploaded_file is None:
-        st.warning("Please upload a file first.")
-    elif not smiles_col.strip():
-        st.warning("Please enter the SMILES column name.")
-    else:
-        try:
-            df = pd.read_csv(uploaded_file)
-            if smiles_col not in df.columns:
-                st.error(f"SMILES column '{smiles_col}' not found. Available columns: {list(df.columns)}")
-            else:
-                smiles_series = df[smiles_col]
-                if id_col and id_col in df.columns:
-                    id_series = df[id_col]
-                    st.info(f"Using column '{id_col}' for ID.")
-                else:
-                    id_series = [f"molecule{i+1}" for i in range(len(smiles_series))]
-                    st.info("Generating default IDs: molecule1, molecule2, ...")
-
-                df_new = pd.DataFrame({'ID': id_series, 'SMILES': smiles_series})
-                st.session_state.df_new = df_new  # Store in session for reuse
-                st.success("✅ DataFrame created:")
-                st.dataframe(df_new)
-
-        except Exception as e:
-            st.error(f"Error processing file: {e}")
-
-# === 2. Standardization function ===
+# === Hàm chuẩn hóa SMILES ===
 def standardize_smiles(batch):
     uc = rdMolStandardize.Uncharger()
     md = rdMolStandardize.MetalDisconnector()
@@ -125,18 +85,21 @@ def standardize_smiles(batch):
             standardized_list.append(None)
     return standardized_list
 
-# === 3. Standardize Button ===
+# === Giao diện chuẩn hóa sau khi đã có df_new ===
 if "df_new" in st.session_state:
+    st.subheader("Step 2: Standardize SMILES")
     if st.button("Standardize"):
         with st.spinner("Standardizing SMILES..."):
             df_standardized = st.session_state.df_new.copy()
             df_standardized["Standardized_SMILES"] = standardize_smiles(df_standardized["SMILES"])
             st.session_state.df_standardized = df_standardized
-            st.success("✅ SMILES standardized:")
+            st.success("✅ SMILES standardized successfully.")
             st.dataframe(df_standardized)
 
-            # Option to download
+            # Nút tải về
             csv = df_standardized.to_csv(index=False).encode("utf-8")
             st.download_button("Download Standardized CSV", csv, "standardized_smiles.csv", "text/csv")
+else:
+    st.warning("⚠️ Please complete Step 1 (upload & extract columns) before standardizing.")
 
 
