@@ -257,3 +257,37 @@ if st.button("Run Prediction"):
         st.error("❌ One or more model files not found. Please check the paths.")
     except Exception as e:
         st.error(f"❌ Error during prediction: {e}")
+
+# === Consensus Actives ===
+        actives_bin = screening_bin[screening_bin['label'] == 1]
+        actives_reg = screening_reg[screening_reg['label'] == 1]
+
+        consensus_df = pd.merge(
+            actives_bin[['ID', 'standardized']],
+            actives_reg[['ID', 'standardized']],
+            on=['ID', 'standardized'],
+            how='inner'
+        )
+
+        consensus_df = pd.merge(
+            consensus_df,
+            screening_bin[['ID', 'label_prob']],
+            on='ID', how='left'
+        )
+
+        consensus_df = pd.merge(
+            consensus_df,
+            screening_reg[['ID', 'predicted_pIC50']],
+            on='ID', how='left'
+        )
+
+        st.session_state.consensus = consensus_df
+
+        st.success("✅ Consensus prediction complete.")
+        st.subheader("Consensus Actives (Predicted by Both Models)")
+        st.dataframe(consensus_df)
+
+    except FileNotFoundError:
+        st.error("❌ One or more model files not found. Please check the paths.")
+    except Exception as e:
+        st.error(f"❌ Error during prediction: {e}")
