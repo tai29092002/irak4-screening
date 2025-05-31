@@ -259,7 +259,7 @@ else:
 if st.button("Run Regression Model"):
     try:
         # Load mô hình hồi quy
-        with open('/content/drive/MyDrive/Lab314/KLTN/IRAK4/model/xgb_regression_764_tuned.pkl', 'rb') as file:
+        with open('model/xgb_regression_764_tuned.pkl', 'rb') as file:
             xgb_model = pickle.load(file)
 
         # Chuẩn bị dữ liệu đầu vào
