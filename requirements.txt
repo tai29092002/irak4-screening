@@ -1,1 +1,7 @@
-streamlit>=1.26.0
+streamlit
+numpy
+pandas
+rdkit
+seaborn
+matplotlib.pyplot
+ipywidgets
