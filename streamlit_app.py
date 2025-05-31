@@ -151,10 +151,11 @@ import numpy as np
 from rdkit.Chem import AllChem
 from tqdm.auto import tqdm
 tqdm.pandas()
+
 st.header("Step 4: Compute ECFP4 Fingerprints")
 
 if "df_select" not in st.session_state:
-    if "raw_pains" in locals():  # Nếu bạn chưa lưu df_select thì lấy từ raw_pains
+    if "raw_pains" in locals():
         df_select = raw_pains.copy()
         st.session_state.df_select = df_select
     else:
@@ -182,6 +183,7 @@ def smiles_to_ecfp4(smiles):
     except:
         return np.full(2048, np.nan)
 
+# Tính fingerprint khi nhấn nút
 if st.button("Generate ECFP4 Fingerprints"):
     with st.spinner("🔬 Generating ECFP4 fingerprints..."):
         ecfp4_matrix = df_select['standardized'].progress_apply(smiles_to_ecfp4)
@@ -193,7 +195,7 @@ if st.button("Generate ECFP4 Fingerprints"):
             ecfp4_df2048.reset_index(drop=True)
         ], axis=1)
 
-        st.session_state.df_split = df_split  # Lưu lại nếu cần sau
-        st.success("✅ ECFP4 fingerprints computed successfully.")
-        st.dataframe(df_split)
+        st.session_state.df_split = df_split  # Lưu vào session
+        st.success("✅ ECFP4 fingerprints computed and stored.")
+
 
