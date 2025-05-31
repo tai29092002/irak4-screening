@@ -242,6 +242,12 @@ if st.button("Run Prediction"):
             df_label = screening[screening['label'] == 1]
             st.subheader("Positive Predictions (label = 1)")
             st.dataframe(df_label)
+            
+            # Chỉ giữ lại các cột quan trọng để hiển thị
+            columns_to_show = ['ID', 'standardized', 'label_prob', 'label']
+            result = screening[columns_to_show]
+            st.session_state.result = result  # Lưu kết quả gọn
+
 
     except FileNotFoundError:
         st.error("❌ Model file not found. Please check the path to the .pkl model.")
