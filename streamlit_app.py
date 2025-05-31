@@ -86,15 +86,24 @@ def standardize_smiles(batch):
     return standardized_list
 
 if "df_new" in st.session_state:
+    # Copy from df_new
     df_standardized = st.session_state.df_new.copy()
-    st.session_state.df_standardized = df_standardized  # Lưu nếu cần dùng tiếp
-    st.success("✅ DataFrame copied successfully.")
-    st.dataframe(df_standardized)
+
+    if "SMILES" in df_standardized.columns:
+        # Gọi hàm chuẩn hóa SMILES
+        standardized_list = standardize_smiles(df_standardized["SMILES"])
+        df_standardized["Standardized_SMILES"] = standardized_list
+
+        # Lưu vào session nếu muốn dùng sau
+        st.session_state.df_standardized = df_standardized
+
+        st.success("✅ SMILES standardized successfully.")
+        st.dataframe(df_standardized)
+    else:
+        st.error("❌ 'SMILES' column not found in df_standardized.")
 else:
     st.warning("⚠️ Please complete the 'Create' step first.")
 
-standardized_list = standardize_smiles(df_standardized['SMILES'])
-df_standardized['standardized'] = standardized_list
 
 
 
