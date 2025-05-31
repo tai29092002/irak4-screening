@@ -205,7 +205,7 @@ import numpy as np
 st.header("Step 5: Predict IRAK4 Inhibition (Binary Classification)")
 
 # Đảm bảo fingerprint đã được tính
-if "data" not in st.session_state:
+if "df_split" not in st.session_state:
     st.warning("⚠️ Please generate ECFP4 fingerprints first.")
     st.stop()
 else:
