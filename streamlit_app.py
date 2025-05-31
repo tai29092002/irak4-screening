@@ -44,11 +44,6 @@ if st.button("Create"):
                 df_new = pd.DataFrame({'ID': id_series, 'SMILES': smiles_series})
                 st.success("✅ Extracted DataFrame with 'ID' and 'SMILES':")
                 st.dataframe(df_new)
-
-                # Option to download
-                csv = df_new.to_csv(index=False).encode('utf-8')
-                st.download_button("Download CSV", csv, file_name="id_smiles.csv", mime="text/csv")
-
         except Exception as e:
             st.error(f"Error processing file: {e}")
 
