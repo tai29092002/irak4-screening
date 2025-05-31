@@ -209,7 +209,7 @@ else:
 if st.button("Run Prediction"):
     try:
         # === Binary Classification ===
-        with open('model/rf_binary_813_tuned.pkl', 'rb') as file:
+        with open('model1/rf_binary_813_tuned.pkl', 'rb') as file:
             rf_model = pickle.load(file)
 
         X_bin = data.drop(['ID', 'standardized'], axis=1)
