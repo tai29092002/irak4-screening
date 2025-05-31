@@ -8,7 +8,7 @@ from tqdm.auto import tqdm
 from rdkit.Chem import FilterCatalog
 from rdkit.Chem import AllChem
 st.title('IRAK4 SCREENING')
-st.info('This is an app built for predicting IRAK4 inhibitors')
+st.info('This application is designed to predict potent IRAK4 inhibitors')
 
 # === 1. Upload and extract ===
 st.header("Step 1: Upload and extract ID & SMILES")
