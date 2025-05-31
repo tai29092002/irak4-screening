@@ -5,3 +5,4 @@ rdkit
 seaborn
 matplotlib.pyplot
 ipywidgets
+scikit-learn
