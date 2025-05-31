@@ -237,7 +237,7 @@ if st.button("Run Prediction"):
         st.success("✅ Prediction complete.")
 
         # Chỉ hiển thị các phân tử có label = 1
-        st.subheader("Filtered (label = 1)")
+        st.subheader("Binary Predicted Actives")
         st.dataframe(screening[screening['label'] == 1])
 
     except FileNotFoundError:
