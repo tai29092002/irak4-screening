@@ -198,4 +198,53 @@ if st.button("Generate ECFP4 Fingerprints"):
         st.session_state.df_split = df_split  # Lưu vào session
         st.success("✅ ECFP4 fingerprints computed and stored.")
 
+# === 6.BINARY SCREENING ===
+import pickle
+import numpy as np
+
+st.header("Step 5: Predict IRAK4 Inhibition (Binary Classification)")
+
+# Đảm bảo fingerprint đã được tính
+if "data" not in st.session_state:
+    st.warning("⚠️ Please generate ECFP4 fingerprints first.")
+    st.stop()
+else:
+    data = st.session_state.data.copy()
+
+# Nút để chạy mô hình
+if st.button("Run Prediction"):
+    try:
+        with st.spinner("🔍 Loading model and predicting..."):
+            # Load mô hình từ file .pkl
+            with open('model/rf_binary_813_tuned.pkl', 'rb') as file:
+                rf_model = pickle.load(file)
+
+            # Lấy features đầu vào
+            X = data.drop(['ID', 'standardized'], axis=1)
+
+            # Dự đoán
+            probabilities = rf_model.predict_proba(X)[:, 1]
+            screening = data.copy()
+            screening['label_prob'] = np.round(probabilities, 4)
+            screening['label'] = np.where(screening['label_prob'] >= 0.5, 1, 0)
+
+            # Gán kết quả vào session
+            st.session_state.result = screening
+
+            # Thống kê nhãn
+            label_counts = screening['label'].value_counts().rename_axis('label').reset_index(name='count')
+
+            st.success("✅ Prediction completed.")
+            st.subheader("Label Distribution")
+            st.dataframe(label_counts)
+
+            # Hiển thị các phân tử có nhãn 1
+            df_label = screening[screening['label'] == 1]
+            st.subheader("Positive Predictions (label = 1)")
+            st.dataframe(df_label)
+
+    except FileNotFoundError:
+        st.error("❌ Model file not found. Please check the path to the .pkl model.")
+    except Exception as e:
+        st.error(f"❌ An error occurred: {e}")
 
