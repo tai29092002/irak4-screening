@@ -1,37 +1,30 @@
 import streamlit as st
+import pandas as pd
+from rdkit import Chem
+from rdkit.Chem.MolStandardize import rdMolStandardize
+from tqdm.auto import tqdm
 
 st.title('🎈 IRAK4 SCREENING')
+st.info('This is an app built for predicting IRAK4 inhibitors')
 
-st.info('This is an app build for predicting IRAK4 inhibitors')
-
-# streamlit_app.py
-
-import streamlit as st
-import pandas as pd
-import io
-
-st.title("Upload CSV/TXT and Extract ID & SMILES")
-
-# === 1. File uploader ===
+# === 1. Upload and extract ===
+st.header("Step 1: Upload and extract ID & SMILES")
 uploaded_file = st.file_uploader("Upload a CSV or TXT file", type=['csv', 'txt'])
+id_col = st.text_input("ID column (optional)", value="", placeholder="e.g. Molecule_Name")
+smiles_col = st.text_input("SMILES column (required)", value="", placeholder="e.g. SMILES")
 
-# === 2. Input fields ===
-id_col = st.text_input("ID column (optional)", value="", placeholder="Molecule_Name")
-smiles_col = st.text_input("SMILES column (required)", value="", placeholder="SMILES")
-
-# === 3. Process button ===
 if st.button("Create"):
     if uploaded_file is None:
-        st.warning("Please upload a file first.")
+        st.warning("Please upload a file.")
     elif not smiles_col.strip():
-        st.warning("Please enter the SMILES column name.")
+        st.warning("Please enter SMILES column name.")
     else:
         try:
             df = pd.read_csv(uploaded_file)
-            st.success(f"File uploaded: {uploaded_file.name}")
+            st.success(f"📄 File uploaded: {uploaded_file.name}")
 
             if smiles_col not in df.columns:
-                st.error(f"SMILES column '{smiles_col}' not found. Available columns: {list(df.columns)}")
+                st.error(f"Column '{smiles_col}' not found. Available columns: {list(df.columns)}")
             else:
                 smiles_series = df[smiles_col]
                 if id_col and id_col in df.columns:
@@ -39,68 +32,58 @@ if st.button("Create"):
                     st.info(f"Using column '{id_col}' for ID.")
                 else:
                     id_series = [f"molecule{i+1}" for i in range(len(smiles_series))]
-                    st.info("ID column not found — generating IDs: molecule1, molecule2, ...")
+                    st.info("ID column not found — generating molecule1, molecule2, ...")
 
                 df_new = pd.DataFrame({'ID': id_series, 'SMILES': smiles_series})
-                st.success("✅ Extracted DataFrame with 'ID' and 'SMILES':")
+                st.session_state.df_new = df_new
+                st.success("✅ Extracted DataFrame:")
                 st.dataframe(df_new)
         except Exception as e:
-            st.error(f"Error processing file: {e}")
+            st.error(f"❌ Error reading file: {e}")
 
-from rdkit import Chem, rdBase
-from rdkit.Chem.MolStandardize import rdMolStandardize
-from tqdm.auto import tqdm
-
+# === 2. Standardize SMILES ===
 def standardize_smiles(batch):
     uc = rdMolStandardize.Uncharger()
     md = rdMolStandardize.MetalDisconnector()
     te = rdMolStandardize.TautomerEnumerator()
+    reionizer = rdMolStandardize.Reionizer()
 
     standardized_list = []
-    for smi in tqdm(batch.to_list(), desc='Processing . . .'):
+    for smi in tqdm(batch.to_list(), desc='Standardizing...'):
         try:
             mol = Chem.MolFromSmiles(smi)
             if mol:
                 Chem.SanitizeMol(mol, sanitizeOps=(Chem.SANITIZE_ALL ^ Chem.SANITIZE_CLEANUP ^ Chem.SANITIZE_PROPERTIES))
-                cleanup = rdMolStandardize.Cleanup(mol)
-                normalized = rdMolStandardize.Normalize(cleanup)
-                uncharged = uc.uncharge(normalized)
-                fragment = uc.uncharge(rdMolStandardize.FragmentParent(uncharged))
-                ionized = rdMolStandardize.Reionize(fragment)
-                disconnected = md.Disconnect(ionized)
-                tautomer = te.Canonicalize(disconnected)
-                smiles = Chem.MolToSmiles(tautomer, isomericSmiles=False, canonical=True)
+                mol = rdMolStandardize.Cleanup(mol)
+                mol = rdMolStandardize.Normalize(mol)
+                mol = uc.uncharge(mol)
+                mol = rdMolStandardize.FragmentParent(mol)
+                mol = reionizer.reionize(mol)
+                mol = md.Disconnect(mol)
+                mol = te.Canonicalize(mol)
+                smiles = Chem.MolToSmiles(mol, isomericSmiles=False, canonical=True)
                 standardized_list.append(smiles)
             else:
                 standardized_list.append(None)
-                print(f"Invalid SMILES: {smi}")
-        except Exception as e:
-            print(f"An error occurred with SMILES {smi}: {str(e)}")
+        except Exception:
             standardized_list.append(None)
-
     return standardized_list
 
+# === 3. Run Standardization (no download) ===
+st.header("Step 2: Standardize SMILES")
+
 if "df_new" in st.session_state:
-    # Copy from df_new
-    df_standardized = st.session_state.df_new.copy()
+    if st.button("Standardize"):
+        df_standardized = st.session_state.df_new.copy()
 
-    if "SMILES" in df_standardized.columns:
-        # Gọi hàm chuẩn hóa SMILES
-        standardized_list = standardize_smiles(df_standardized["SMILES"])
-        df_standardized["Standardized_SMILES"] = standardized_list
-
-        # Lưu vào session nếu muốn dùng sau
-        st.session_state.df_standardized = df_standardized
-
-        st.success("✅ SMILES standardized successfully.")
-        st.dataframe(df_standardized)
-    else:
-        st.error("❌ 'SMILES' column not found in df_standardized.")
+        if "SMILES" not in df_standardized.columns:
+            st.error("❌ 'SMILES' column not found.")
+        else:
+            with st.spinner("⏳ Standardizing SMILES..."):
+                standardized = standardize_smiles(df_standardized["SMILES"])
+                df_standardized["Standardized_SMILES"] = standardized
+                st.session_state.df_standardized = df_standardized
+                st.success("✅ Standardization complete.")
+                st.dataframe(df_standardized)
 else:
-    st.warning("⚠️ Please complete the 'Create' step first.")
-
-
-
-
-
-
+    st.info("👉 Please complete Step 1 first.")
