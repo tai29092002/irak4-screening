@@ -198,13 +198,8 @@ if st.button("Generate ECFP4 Fingerprints"):
         st.session_state.df_split = df_split  # Lưu vào session
         st.success("✅ ECFP4 fingerprints computed and stored.")
 
-# === 6.BINARY SCREENING ===
-import pickle
-import numpy as np
-import pandas as pd
-import streamlit as st
-
-st.header("Step 5: Predict IRAK4 Inhibition (Binary Classification)")
+# === 6. SCREENING ===
+st.header("Step 5: IRAK4 Model Screening")
 
 # Đảm bảo fingerprint đã được tính
 if "df_split" not in st.session_state:
@@ -213,89 +208,55 @@ if "df_split" not in st.session_state:
 else:
     data = st.session_state.df_split.copy()
 
-# Nút chạy dự đoán
+# Nút chạy cả hai mô hình
 if st.button("Run Prediction"):
     try:
-        # Load mô hình
+        # === Binary Classification ===
         with open('model/rf_binary_813_tuned.pkl', 'rb') as file:
             rf_model = pickle.load(file)
 
-        # Dự đoán
-        X = data.drop(['ID', 'standardized'], axis=1)
-        probabilities = rf_model.predict_proba(X)[:, 1]
+        X_bin = data.drop(['ID', 'standardized'], axis=1)
+        prob_bin = rf_model.predict_proba(X_bin)[:, 1]
 
-        # Kết quả chỉ gồm 4 cột
-        screening = pd.DataFrame({
+        screening_bin = pd.DataFrame({
             'ID': data['ID'],
             'standardized': data['standardized'],
-            'label_prob': np.round(probabilities, 4),
-            'label': np.where(probabilities >= 0.5, 1, 0)
+            'label_prob': np.round(prob_bin, 4),
+            'label': np.where(prob_bin >= 0.5, 1, 0)
         })
 
-        st.session_state.result = screening
+        st.session_state.result_bin = screening_bin.copy()
 
-        st.success("✅ Prediction complete.")
-
-        # Chỉ hiển thị các phân tử có label = 1
+        st.success("✅ Binary prediction complete.")
         st.subheader("Binary Predicted Actives")
-        st.dataframe(screening[screening['label'] == 1])
+        st.dataframe(screening_bin[screening_bin['label'] == 1][['ID', 'standardized', 'label_prob', 'label']])
 
-    except FileNotFoundError:
-        st.error("❌ Model file not found. Please check the path.")
-    except Exception as e:
-        st.error(f"❌ Error during prediction: {e}")
-
-# === 7.REGRESSION SCREENING ===
-import pickle
-import numpy as np
-import pandas as pd
-
-st.header("Step 6: Predict IRAK4 Activity (Regression Model)")
-
-# Đảm bảo fingerprint đã được tạo từ df_split
-if "df_split" not in st.session_state:
-    st.warning("⚠️ Please generate ECFP4 fingerprints first.")
-    st.stop()
-else:
-    data_reg = st.session_state.df_split.copy()
-
-# Nút chạy mô hình hồi quy
-if st.button("Run Regression Model"):
-    try:
-        # Load mô hình hồi quy
+        # === Regression Prediction ===
         with open('model/xgb_regression_764_tuned.pkl', 'rb') as file:
             xgb_model = pickle.load(file)
 
-        # Chuẩn bị dữ liệu đầu vào
-        X_reg = data_reg.drop(['ID', 'standardized'], axis=1)
-
-        # Dự đoán pIC50
+        X_reg = data.drop(['ID', 'standardized'], axis=1)
         predicted_pIC50 = xgb_model.predict(X_reg)
 
-        # Tạo bảng kết quả
         screening_reg = pd.DataFrame({
-            'ID': data_reg['ID'],
-            'standardized': data_reg['standardized'],
+            'ID': data['ID'],
+            'standardized': data['standardized'],
             'predicted_pIC50': np.round(predicted_pIC50, 4)
         })
 
-        # Xác định ngưỡng label từ IC50 = 8 nM
         IC50_nM = 8
         IC50_M = IC50_nM * 1e-9
         base_pIC50 = -np.log10(IC50_M)
 
-        # Gán nhãn: 1 nếu pIC50 >= ngưỡng
         screening_reg['label'] = (screening_reg['predicted_pIC50'] >= base_pIC50).astype(int)
 
-        # Lưu vào session
         st.session_state.result_reg = screening_reg.copy()
 
-        # Hiển thị kết quả lọc theo nhãn
         st.success("✅ Regression prediction complete.")
-        st.subheader("Predicted Active Compounds (from Regression)")
+        st.subheader("Regression Predicted Actives")
         st.dataframe(screening_reg[screening_reg['label'] == 1][['ID', 'standardized', 'predicted_pIC50', 'label']])
 
     except FileNotFoundError:
-        st.error("❌ Regression model file not found. Please check the path.")
+        st.error("❌ One or more model files not found. Please check the paths.")
     except Exception as e:
-        st.error(f"❌ Error during regression prediction: {e}")
+        st.error(f"❌ Error during prediction: {e}")
