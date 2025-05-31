@@ -279,7 +279,7 @@ if st.button("Run Prediction"):
         st.session_state.consensus = consensus_df
 
         st.success("✅ Consensus prediction complete.")
-        st.subheader("Consensus Actives (Predicted by Both Models)")
+        st.subheader("Consensus Actives")
         st.dataframe(consensus_df)
 
     except FileNotFoundError:
