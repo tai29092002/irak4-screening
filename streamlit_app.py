@@ -53,7 +53,6 @@ if st.button("Create"):
             st.error(f"Error processing file: {e}")
 
 from rdkit import Chem, rdBase
-from rdkit.Chem import AllChem, Draw, PandasTools
 from rdkit.Chem.Draw import IPythonConsole
 from rdkit.Chem.MolStandardize import rdMolStandardize
 from tqdm.auto import tqdm
