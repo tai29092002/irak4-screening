@@ -12,28 +12,6 @@ from rdkit.Chem import AllChem
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
 import os
 
-st.markdown(
-    """
-    <style>
-    .stApp {
-        background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA...");  /* hoặc dùng URL ảnh */
-        background-size: cover;
-        background-repeat: no-repeat;
-        background-attachment: fixed;
-        background-position: center;
-    }
-
-    /* Nếu bạn chỉ muốn đổi màu thay vì ảnh: */
-    /* 
-    .stApp {
-        background-color: #00CAFF;
-    }
-    */
-    </style>
-    """,
-    unsafe_allow_html=True
-)
-
 st.title('IRAK4 SCREENING')
 st.info('This application is designed to predict potent IRAK4 inhibitors')
 
@@ -88,7 +66,7 @@ def standardize_smiles(batch):
             result.append(None)
     return result
 
-if st.button("Standardize"):
+if st.button("Standardize",type="Buttoncolor"):
     if "df_new" in st.session_state:
         df = st.session_state.df_new.copy()
         df["standardized"] = standardize_smiles(df.SMILES)
