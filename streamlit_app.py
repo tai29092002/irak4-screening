@@ -1,3 +1,5 @@
+# === STREAMLIT APP FOR IRAK4 SCREENING ===
+
 import streamlit as st
 import pickle
 import numpy as np
@@ -8,60 +10,48 @@ from tqdm.auto import tqdm
 from rdkit.Chem import FilterCatalog
 from rdkit.Chem import AllChem
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
-import io
-import subprocess
 import os
 
 st.title('IRAK4 SCREENING')
 st.info('This application is designed to predict potent IRAK4 inhibitors')
 
-# === 1. Upload and extract ===
+# === 1. UPLOAD ===
 st.header("Step 1: Upload and extract ID & SMILES")
+
 uploaded_file = st.file_uploader("Upload a CSV file", type=['csv'])
 id_col = st.text_input("ID column (optional)", value="", placeholder="e.g. Molecule_Name")
 smiles_col = st.text_input("SMILES column (required)", value="", placeholder="e.g. SMILES")
 
-if st.button("Create"):
+if st.button("Create Dataset"):
     if uploaded_file is None:
         st.warning("Please upload a file.")
     elif not smiles_col.strip():
         st.warning("Please enter SMILES column name.")
     else:
-        try:
-            df = pd.read_csv(uploaded_file)
-            st.success(f"📄 File uploaded: {uploaded_file.name}")
+        df = pd.read_csv(uploaded_file)
+        if smiles_col not in df.columns:
+            st.error(f"Column '{smiles_col}' not found.")
+        else:
+            ids = df[id_col] if id_col and id_col in df.columns else [f"molecule{i+1}" for i in range(len(df))]
+            df_new = pd.DataFrame({'ID': ids, 'SMILES': df[smiles_col]})
+            st.session_state.df_new = df_new
+            st.success("✅ Step 1 completed.")
+            st.dataframe(df_new)
 
-            if smiles_col not in df.columns:
-                st.error(f"Column '{smiles_col}' not found. Available columns: {list(df.columns)}")
-            else:
-                smiles_series = df[smiles_col]
-                if id_col and id_col in df.columns:
-                    id_series = df[id_col]
-                    st.info(f"Using column '{id_col}' for ID.")
-                else:
-                    id_series = [f"molecule{i+1}" for i in range(len(smiles_series))]
-                    st.info("ID column not found — generating molecule1, molecule2, ...")
+# === 2. STANDARDIZATION ===
+st.header("Step 2: Standardize SMILES")
 
-                df_new = pd.DataFrame({'ID': id_series, 'SMILES': smiles_series})
-                st.session_state.df_new = df_new
-                st.success("✅ Extracted DataFrame:")
-                st.dataframe(df_new)
-        except Exception as e:
-            st.error(f"❌ Error reading file: {e}")
-
-# === 2. Standardize SMILES ===
 def standardize_smiles(batch):
     uc = rdMolStandardize.Uncharger()
     md = rdMolStandardize.MetalDisconnector()
     te = rdMolStandardize.TautomerEnumerator()
     reionizer = rdMolStandardize.Reionizer()
-
-    standardized_list = []
-    for smi in tqdm(batch.to_list(), desc='Standardizing...'):
+    result = []
+    for smi in batch:
         try:
             mol = Chem.MolFromSmiles(smi)
             if mol:
-                Chem.SanitizeMol(mol, sanitizeOps=(Chem.SANITIZE_ALL ^ Chem.SANITIZE_CLEANUP ^ Chem.SANITIZE_PROPERTIES))
+                Chem.SanitizeMol(mol)
                 mol = rdMolStandardize.Cleanup(mol)
                 mol = rdMolStandardize.Normalize(mol)
                 mol = uc.uncharge(mol)
@@ -69,255 +59,114 @@ def standardize_smiles(batch):
                 mol = reionizer.reionize(mol)
                 mol = md.Disconnect(mol)
                 mol = te.Canonicalize(mol)
-                smiles = Chem.MolToSmiles(mol, isomericSmiles=False, canonical=True)
-                standardized_list.append(smiles)
+                result.append(Chem.MolToSmiles(mol))
             else:
-                standardized_list.append(None)
-        except Exception:
-            standardized_list.append(None)
-    return standardized_list
+                result.append(None)
+        except:
+            result.append(None)
+    return result
 
-# === 3. Run Standardization (no download) ===
-st.header("Step 2: Standardize SMILES")
+if st.button("Standardize"):
+    if "df_new" in st.session_state:
+        df = st.session_state.df_new.copy()
+        df["standardized"] = standardize_smiles(df.SMILES)
+        st.session_state.df_standardized = df
+        st.success("✅ Step 2 completed.")
+        st.dataframe(df)
+    else:
+        st.warning("Please complete Step 1 first.")
 
-if "df_new" in st.session_state:
-    if st.button("Standardize"):
-        df_standardized = st.session_state.df_new.copy()
-
-        if "SMILES" not in df_standardized.columns:
-            st.error("❌ 'SMILES' column not found.")
-        else:
-            with st.spinner("⏳ Standardizing SMILES..."):
-                standardized = standardize_smiles(df_standardized["SMILES"])
-                df_standardized["Standardized_SMILES"] = standardized
-                st.session_state.df_standardized = df_standardized
-                st.success("✅ Standardization complete.")
-                st.dataframe(df_standardized)
-else:
-    st.info("👉 Please complete Step 1 first.")
-
-# === 4. PAINS-FILTER (no download) ===
+# === 3. PAINS FILTER ===
 st.header("Step 3: PAINS Filtering")
 
-if "df_standardized" in st.session_state:
-    df_pains = st.session_state.df_standardized.copy()
-
-    # Đảm bảo cột chuẩn hóa tồn tại
-    if "Standardized_SMILES" not in df_pains.columns:
-        st.error("❌ 'Standardized_SMILES' column not found.")
+if st.button("Run PAINS Filter"):
+    if "df_standardized" in st.session_state:
+        df = st.session_state.df_standardized.copy()
+        catalog = FilterCatalog.FilterCatalog(FilterCatalog.FilterCatalogParams().AddCatalog(FilterCatalog.FilterCatalogParams.FilterCatalogs.PAINS))
+        clean, matches = [], []
+        for _, row in df.iterrows():
+            mol = Chem.MolFromSmiles(row['standardized'])
+            if mol and catalog.GetFirstMatch(mol):
+                matches.append(row)
+            elif mol:
+                clean.append(row)
+        raw_pains = pd.DataFrame(clean)
+        st.session_state.df_select = raw_pains.copy()
+        st.success("✅ Step 3 completed.")
+        st.dataframe(raw_pains)
     else:
-        # Đổi tên cột để phù hợp xử lý
-        df_pains.rename(columns={"Standardized_SMILES": "standardized"}, inplace=True)
-
-        # Kiểm tra có cột ID
-        if "ID" not in df_pains.columns:
-            st.error("❌ 'ID' column not found.")
-        else:
-            # Tạo catalog PAINS
-            params = FilterCatalog.FilterCatalogParams()
-            params.AddCatalog(FilterCatalog.FilterCatalogParams.FilterCatalogs.PAINS)
-            catalog = FilterCatalog.FilterCatalog(params)
-
-            matches = []
-            clean = []
-
-            for index, row in tqdm(df_pains.iterrows(), total=df_pains.shape[0]):
-                molecule = Chem.MolFromSmiles(row['standardized'])
-                if molecule is None:
-                    continue
-                entry = catalog.GetFirstMatch(molecule)
-                if entry is not None:
-                    matches.append({
-                        "ID": row['ID'],
-                        "standardized": row['standardized'],
-                        "PAINS": entry.GetDescription().capitalize(),
-                    })
-                else:
-                    clean.append(index)
-
-            matches_df = pd.DataFrame(matches)
-            raw_pains = df_pains.loc[clean]
-            
-            st.session_state.df_select = raw_pains.copy()
-            
-            # Hiển thị kết quả
-            st.subheader("PAINS Matches")
-            if not matches_df.empty:
-                st.success(f"✅ {len(matches_df)} molecules matched PAINS filters.")
-                st.dataframe(matches_df)
-            else:
-                st.success("✅ No PAINS alerts found.")
-
-            st.subheader("Clean Molecules (No PAINS)")
-            st.dataframe(raw_pains)
-else:
-    st.warning("⚠️ Please complete the 'Standardize' step first.")
+        st.warning("Please complete Step 2 first.")
 
 # === 4. ECFP4 FINGERPRINTS ===
 st.header("Step 4: Compute ECFP4 Fingerprints")
-st.caption("Generate 2048-bit ECFP4 fingerprints for each standardized molecule.")
 
-# Nút luôn hiển thị
-generate_fp = st.button("Generate ECFP4 Fingerprints")
+if st.button("Generate ECFP4 Fingerprints"):
+    if "df_select" in st.session_state:
+        df = st.session_state.df_select.copy()
 
-if generate_fp:
-    if "df_select" not in st.session_state:
-        st.warning("⚠️ Please complete PAINS filtering in Step 3 first.")
+        def smiles_to_fp(smi):
+            mol = Chem.MolFromSmiles(smi)
+            if mol:
+                fp = AllChem.GetMorganFingerprintAsBitVect(mol, 2, nBits=2048)
+                arr = np.zeros((2048,), dtype=int)
+                AllChem.DataStructs.ConvertToNumpyArray(fp, arr)
+                return arr
+            return np.full(2048, np.nan)
+
+        fps = df['standardized'].apply(smiles_to_fp)
+        df_fp = pd.DataFrame(fps.tolist(), columns=[f"bit_{i}" for i in range(2048)])
+        df_out = pd.concat([df[['ID', 'standardized']].reset_index(drop=True), df_fp.reset_index(drop=True)], axis=1)
+        st.session_state.df_split = df_out
+        st.success("✅ Step 4 completed.")
+        st.dataframe(df_out.head())
     else:
-        df_select = st.session_state.df_select.copy()
+        st.warning("Please complete Step 3 first.")
 
-        if "standardized" not in df_select.columns:
-            st.error("❌ 'standardized' column not found in df_select.")
-        else:
-            with st.spinner("🔬 Generating ECFP4 fingerprints..."):
-                def smiles_to_ecfp4(smiles):
-                    try:
-                        mol = Chem.MolFromSmiles(smiles)
-                        if mol:
-                            fp = AllChem.GetMorganFingerprintAsBitVect(mol, radius=2, nBits=2048)
-                            arr = np.zeros((2048,), dtype=int)
-                            AllChem.DataStructs.ConvertToNumpyArray(fp, arr)
-                            return arr
-                        else:
-                            return np.full(2048, np.nan)
-                    except:
-                        return np.full(2048, np.nan)
-
-                ecfp4_matrix = df_select['standardized'].progress_apply(smiles_to_ecfp4)
-                ecfp4_df2048 = pd.DataFrame(ecfp4_matrix.tolist(),
-                                             columns=[f'bit_{i}' for i in range(2048)])
-
-                df_split = pd.concat([
-                    df_select[['ID', 'standardized']].reset_index(drop=True),
-                    ecfp4_df2048.reset_index(drop=True)
-                ], axis=1)
-
-                st.session_state.df_split = df_split
-                st.success("✅ ECFP4 fingerprints computed and stored. Proceed to Step 5.")
-
-
-# === 5. IRAK4 SCREENING ===
+# === 5. QSAR SCREENING ===
 st.header("Step 5: IRAK4 QSAR Screening")
-st.caption("Predict binary actives and pIC50 values using pretrained models.")
 
-if "df_split" not in st.session_state:
-    st.warning("⚠️ Please generate ECFP4 fingerprints in Step 4 first to unlock prediction.")
-    st.stop()
-    data = st.session_state.df_split.copy()
-
-    if st.button("Run Prediction"):
+if st.button("Run Prediction"):
+    if "df_split" in st.session_state:
         try:
-            # === Binary Classification ===
-            with open('model1/rf_binary_813_tuned.pkl', 'rb') as file:
-                rf_model = pickle.load(file)
+            df = st.session_state.df_split.copy()
 
-            X_bin = data.drop(['ID', 'standardized'], axis=1)
-            prob_bin = rf_model.predict_proba(X_bin)[:, 1]
+            with open('model1/rf_binary_813_tuned.pkl', 'rb') as f:
+                clf = pickle.load(f)
+            X_bin = df.drop(['ID', 'standardized'], axis=1)
+            prob_bin = clf.predict_proba(X_bin)[:, 1]
 
-            screening_bin = pd.DataFrame({
-                'ID': data['ID'],
-                'standardized': data['standardized'],
+            bin_df = pd.DataFrame({
+                'ID': df['ID'],
+                'standardized': df['standardized'],
                 'label_prob': np.round(prob_bin, 4),
-                'label': np.where(prob_bin >= 0.5, 1, 0)
+                'label': (prob_bin >= 0.5).astype(int)
             })
 
-            st.session_state.result = screening_bin.copy()
-
-            # === Regression Prediction ===
-            with open('model1/xgb_regression_764_tuned.pkl', 'rb') as file:
-                xgb_model = pickle.load(file)
-
-            X_reg = data.drop(['ID', 'standardized'], axis=1)
-            predicted_pIC50 = xgb_model.predict(X_reg)
-
-            screening_reg = pd.DataFrame({
-                'ID': data['ID'],
-                'standardized': data['standardized'],
-                'predicted_pIC50': [f"{v:.4f}" for v in predicted_pIC50]
+            with open('model1/xgb_regression_764_tuned.pkl', 'rb') as f:
+                xgb = pickle.load(f)
+            pred_reg = xgb.predict(X_bin)
+            reg_df = pd.DataFrame({
+                'ID': df['ID'],
+                'standardized': df['standardized'],
+                'predicted_pIC50': np.round(pred_reg, 4),
+                'label': (pred_reg >= -np.log10(8e-9)).astype(int)
             })
 
-            IC50_nM = 8
-            IC50_M = IC50_nM * 1e-9
-            base_pIC50 = -np.log10(IC50_M)
-            screening_reg['predicted_pIC50'] = pd.to_numeric(screening_reg['predicted_pIC50'], errors='coerce')
-            screening_reg['label'] = (screening_reg['predicted_pIC50'] >= base_pIC50).astype(int)
+            st.session_state.result = bin_df
+            st.session_state.result_reg = reg_df
 
-            st.session_state.result_reg = screening_reg.copy()
+            consensus = bin_df[bin_df.label == 1].merge(reg_df[reg_df.label == 1], on=['ID', 'standardized'])
+            consensus = consensus[['ID', 'standardized', 'label_prob', 'predicted_pIC50']]
+            st.session_state.consensus = consensus
+            st.success("✅ Step 5 completed.")
 
-            # === Consensus Actives ===
-            actives_bin = screening_bin[screening_bin['label'] == 1]
-            actives_reg = screening_reg[screening_reg['label'] == 1]
-
-            consensus_df = pd.merge(
-                actives_bin[['ID', 'standardized']],
-                actives_reg[['ID', 'standardized']],
-                on=['ID', 'standardized'],
-                how='inner'
-            )
-
-            consensus_df = pd.merge(
-                consensus_df,
-                screening_bin[['ID', 'label_prob']],
-                on='ID', how='left'
-            )
-
-            consensus_df = pd.merge(
-                consensus_df,
-                screening_reg[['ID', 'predicted_pIC50']],
-                on='ID', how='left'
-            )
-
-            st.session_state.consensus = consensus_df
-            st.success("✅ Prediction complete. Scroll down to view results.")
-
-            # === Hiển thị bảng kết quả Binary ===
-            st.subheader("🧪 Binary Predicted Actives")
-            df_binary_active = screening_bin[screening_bin['label'] == 1][['ID', 'standardized', 'label_prob', 'label']]
-            gb_bin = GridOptionsBuilder.from_dataframe(df_binary_active)
-            gb_bin.configure_default_column(filterable=True, sortable=True)
-            grid_options_bin = gb_bin.build()
-            AgGrid(
-                df_binary_active,
-                gridOptions=grid_options_bin,
-                enable_enterprise_modules=False,
-                fit_columns_on_grid_load=True,
-                height=300,
-                theme='alpine'
-            )
-
-            # === Hiển thị bảng kết quả Regression ===
-            st.subheader("📈 Regression Predicted Actives")
-            df_reg_active = screening_reg[screening_reg['label'] == 1][['ID', 'standardized', 'predicted_pIC50', 'label']]
-            gb_reg = GridOptionsBuilder.from_dataframe(df_reg_active)
-            gb_reg.configure_default_column(filterable=True, sortable=True)
-            grid_options_reg = gb_reg.build()
-            AgGrid(
-                df_reg_active,
-                gridOptions=grid_options_reg,
-                enable_enterprise_modules=False,
-                fit_columns_on_grid_load=True,
-                height=300,
-                theme='alpine'
-            )
-
-            # === Hiển thị bảng Consensus ===
-            st.subheader("📊 Consensus Actives")
-            gb_consensus = GridOptionsBuilder.from_dataframe(consensus_df)
-            gb_consensus.configure_default_column(filterable=True, sortable=True)
-            grid_options_consensus = gb_consensus.build()
-            AgGrid(
-                consensus_df,
-                gridOptions=grid_options_consensus,
-                enable_enterprise_modules=False,
-                fit_columns_on_grid_load=True,
-                height=400,
-                theme='alpine'
-            )
-
+            st.subheader("Consensus Actives")
+            AgGrid(consensus)
         except Exception as e:
-            st.error(f"❌ Lỗi khi xử lý dữ liệu prediction: {e}")
-else:
-    st.warning("⚠️ Please generate ECFP4 fingerprints in Step 4 first to unlock prediction.")
+            st.error(f"Prediction error: {e}")
+    else:
+        st.warning("Please complete Step 4 first.")
+
 
 
 
