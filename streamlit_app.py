@@ -23,7 +23,7 @@ uploaded_file = st.file_uploader("Upload a CSV file", type=['csv'])
 id_col = st.text_input("ID column (optional)", value="", placeholder="e.g. Molecule_Name")
 smiles_col = st.text_input("SMILES column (required)", value="", placeholder="e.g. SMILES")
 
-if st.button("Create Dataset",type="primary"):
+if st.button("Create Dataset", type="primary"):
     if uploaded_file is None:
         st.warning("Please upload a file.")
     elif not smiles_col.strip():
@@ -37,10 +37,12 @@ if st.button("Create Dataset",type="primary"):
             df_new = pd.DataFrame({'ID': ids, 'SMILES': df[smiles_col]})
             st.session_state.df_new = df_new
             st.success("✅ Step 1 completed.")
+            
+            # AgGrid hiển thị df_new
             gb = GridOptionsBuilder.from_dataframe(df_new)
             gb.configure_default_column(filterable=True, sortable=True)
             grid_options = gb.build()
-            AgGrid(df, gridOptions=grid_options, height=300, theme="alpine")
+            AgGrid(df_new, gridOptions=grid_options, height=300, theme="alpine")
 
 # === 2. STANDARDIZATION ===
 st.header("Step 2: Standardize")
