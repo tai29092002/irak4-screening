@@ -15,7 +15,7 @@ import os
 st.markdown("""
     <style>
     .stAlert[data-testid="stAlert-success"] {
-        background-color: #D0F0FF;
+        background-color: #FFDCCC;
         color: #003366;
         border-left: 5px solid #00BFFF;
     }
