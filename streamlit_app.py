@@ -274,15 +274,24 @@ if st.button("Run Prediction"):
             consensus_df,
             screening_reg[['ID', 'predicted_pIC50']],
             on='ID', how='left'
-        )
+        )        
 
+        # Lưu session nếu cần
         st.session_state.consensus = consensus_df
 
         st.success("✅ Consensus prediction complete.")
-        st.subheader("Consensus Actives")
-        st.dataframe(consensus_df)
+        st.subheader("📊 Consensus Actives")
 
-    except FileNotFoundError:
-        st.error("❌ One or more model files not found. Please check the paths.")
-    except Exception as e:
-        st.error(f"❌ Error during prediction: {e}")
+        # Giao diện có filter và sort như Excel
+        gb = GridOptionsBuilder.from_dataframe(consensus_df)
+        gb.configure_default_column(filterable=True, sortable=True)
+        grid_options = gb.build()
+
+        AgGrid(
+            consensus_df,
+            gridOptions=grid_options,
+            enable_enterprise_modules=False,
+            fit_columns_on_grid_load=True,
+            height=500,
+            theme='alpine'
+        )
