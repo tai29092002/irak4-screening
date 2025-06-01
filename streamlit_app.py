@@ -7,7 +7,7 @@ import pandas as pd
 from rdkit import Chem
 from rdkit.Chem.MolStandardize import rdMolStandardize
 from tqdm.auto import tqdm
-from rdkit.Chem import FilterCatalog
+from rdkit.Chem.FilterCatalog import FilterCatalog, FilterCatalogParams
 from rdkit.Chem import AllChem
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
 import os
@@ -82,7 +82,9 @@ st.header("Step 3: PAINS Filtering")
 if st.button("Run PAINS Filter"):
     if "df_standardized" in st.session_state:
         df = st.session_state.df_standardized.copy()
-        catalog = FilterCatalog.FilterCatalog(FilterCatalog.FilterCatalogParams().AddCatalog(FilterCatalog.FilterCatalogParams.FilterCatalogs.PAINS))
+        params = FilterCatalogParams()
+        params.AddCatalog(FilterCatalogParams.FilterCatalogs.PAINS)
+        catalog = FilterCatalog(params)
         clean, matches = [], []
         for _, row in df.iterrows():
             mol = Chem.MolFromSmiles(row['standardized'])
