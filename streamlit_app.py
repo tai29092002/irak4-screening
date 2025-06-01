@@ -24,6 +24,7 @@ st.markdown(f"""
         background-color: {secondary_bg_color} !important;
     }}
     </style>
+""", unsafe_allow_html=True)
 
 st.title('IRAK4 SCREENING')
 st.info('This application is designed to predict potent IRAK4 inhibitors')
