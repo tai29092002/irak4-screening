@@ -11,7 +11,6 @@ from rdkit.Chem.FilterCatalog import FilterCatalog, FilterCatalogParams
 from rdkit.Chem import AllChem
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
 import os
-from st_flexible_callout_elements import flexible_info
 from st_flexible_callout_elements import flexible_callout
 
 custom_css = {
@@ -22,7 +21,6 @@ custom_css = {
 }  
 
 st.title('IRAK4 SCREENING')
-
 flexible_callout(
     message="This application is designed to predict potent IRAK4 inhibitors",
     background_color="#D0F0FF",
@@ -32,8 +30,6 @@ flexible_callout(
     padding=10,
     margin_bottom=10
 )
-
-# st.info('This application is designed to predict potent IRAK4 inhibitors')
 
 # === 1. UPLOAD ===
 st.header("Step 1: Upload and extract ID & SMILES")
