@@ -66,7 +66,7 @@ def standardize_smiles(batch):
             result.append(None)
     return result
 
-if st.button("Standardize",type="Buttoncolor"):
+if st.button("Standardize",type="buttoncolor"):
     if "df_new" in st.session_state:
         df = st.session_state.df_new.copy()
         df["standardized"] = standardize_smiles(df.SMILES)
