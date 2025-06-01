@@ -6,8 +6,6 @@ matplotlib
 ipywidgets
 scikit-learn
 rdkit
-prody
-py3Dmol
 tqdm
 xgboost
 streamlit-aggrid
