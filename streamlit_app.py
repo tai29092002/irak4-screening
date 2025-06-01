@@ -324,71 +324,90 @@ if "consensus" in st.session_state:
         theme='alpine'
     )
 
-st.header("Step 7: Convert ONE Selected Consensus Ligand to PDBQT")
+st.header("Step 7: Convert Selecte to PDBQT")
+
+# Tạo thư mục lưu file nếu chưa có
+LIGAND_DIR = "ligands_pdbqt"
+os.makedirs(LIGAND_DIR, exist_ok=True)
 
 if "consensus" in st.session_state:
     df = st.session_state.consensus.copy()
 
-    st.subheader("📋 Select one molecule")
+    if "selected_mol_id" not in st.session_state:
+        st.subheader("📋 Select one molecule from consensus results")
 
-    # Cấu hình AgGrid cho phép chọn 1 dòng
-    gb = GridOptionsBuilder.from_dataframe(df)
-    gb.configure_default_column(filterable=True, sortable=True)
-    gb.configure_selection(selection_mode="single", use_checkbox=True)
-    grid_options = gb.build()
+        gb = GridOptionsBuilder.from_dataframe(df)
+        gb.configure_default_column(filterable=True, sortable=True)
+        gb.configure_selection(selection_mode="single", use_checkbox=True)
+        grid_options = gb.build()
 
-    grid_response = AgGrid(
-        df,
-        gridOptions=grid_options,
-        update_mode=GridUpdateMode.MODEL_CHANGED,
-        enable_enterprise_modules=False,
-        fit_columns_on_grid_load=True,
-        height=400,
-        theme='alpine'
-    )
+        grid_response = AgGrid(
+            df,
+            gridOptions=grid_options,
+            update_mode=GridUpdateMode.MODEL_CHANGED,
+            enable_enterprise_modules=False,
+            fit_columns_on_grid_load=True,
+            height=400,
+            theme='alpine'
+        )
 
-    selected_rows = grid_response["selected_rows"]
+        selected_rows = grid_response["selected_rows"]
 
-    # Kiểm tra chọn dòng và lấy thông tin SMILES
-    if isinstance(selected_rows, list) and len(selected_rows) > 0:
-        row = selected_rows[0]  # row là một dict
-        mol_id = row.get('ID')
-        smiles = row.get('standardized')
+        if isinstance(selected_rows, list) and len(selected_rows) > 0:
+            row = selected_rows[0]
+            mol_id = row.get('ID')
+            smiles = row.get('standardized')
 
-        st.success(f"✅ Selected molecule: {mol_id}")
+            st.info(f"🔎 Bạn đã chọn: **{mol_id}**")
+            st.code(smiles, language="smiles")
+
+            # Nút xác nhận lựa chọn
+            if st.button("✅ Xác nhận lựa chọn"):
+                st.session_state.selected_mol_id = mol_id
+                st.session_state.selected_smiles = smiles
+                st.success(f"✅ Đã xác nhận chọn: {mol_id}")
+                st.experimental_rerun()
+        else:
+            st.info("🔍 Vui lòng chọn một dòng từ bảng.")
+    else:
+        # Nếu đã chọn rồi thì chuyển sang phần xử lý
+        mol_id = st.session_state.selected_mol_id
+        smiles = st.session_state.selected_smiles
+
+        st.success(f"✅ Molecule đã được chọn: {mol_id}")
         st.code(smiles, language="smiles")
 
-        if st.button("🚀 Convert to PDBQT"):
-            try:
-                mol = Chem.MolFromSmiles(smiles)
-                mol = Chem.AddHs(mol)
-                AllChem.EmbedMolecule(mol, AllChem.ETKDG())
-                AllChem.UFFOptimizeMolecule(mol)
+        pdbqt_path = os.path.join(LIGAND_DIR, f"{mol_id}.pdbqt")
+        if not os.path.exists(pdbqt_path):
+            if st.button("🚀 Convert to PDBQT"):
+                try:
+                    mol = Chem.MolFromSmiles(smiles)
+                    mol = Chem.AddHs(mol)
+                    AllChem.EmbedMolecule(mol, AllChem.ETKDG())
+                    AllChem.UFFOptimizeMolecule(mol)
 
-                output_dir = "ligands_pdbqt"
-                os.makedirs(output_dir, exist_ok=True)
+                    pdb_path = os.path.join(LIGAND_DIR, f"{mol_id}.pdb")
+                    Chem.MolToPDBFile(mol, pdb_path)
 
-                pdb_path = os.path.join(output_dir, f"{mol_id}.pdb")
-                pdbqt_path = os.path.join(output_dir, f"{mol_id}.pdbqt")
+                    subprocess.run(["obabel", pdb_path, "-O", pdbqt_path], check=True)
+                    st.success("🎉 Tạo file .pdbqt thành công.")
+                except Exception as e:
+                    st.error(f"❌ Lỗi khi chuyển: {e}")
 
-                Chem.MolToPDBFile(mol, pdb_path)
+        if os.path.exists(pdbqt_path):
+            with open(pdbqt_path, "rb") as f:
+                st.download_button(
+                    label=f"⬇️ Tải {mol_id}.pdbqt",
+                    data=f,
+                    file_name=f"{mol_id}.pdbqt"
+                )
 
-                # Gọi Open Babel để chuyển sang .pdbqt
-                subprocess.run(["obabel", pdb_path, "-O", pdbqt_path], check=True)
+        # Nút reset để chọn lại nếu muốn
+        if st.button("🔁 Chọn lại molecule khác"):
+            del st.session_state.selected_mol_id
+            del st.session_state.selected_smiles
+            st.experimental_rerun()
 
-                # Nút tải về
-                with open(pdbqt_path, "rb") as f:
-                    st.download_button(
-                        label=f"⬇️ Download {mol_id}.pdbqt",
-                        data=f,
-                        file_name=f"{mol_id}.pdbqt"
-                    )
-
-                st.success("🎉 Conversion to PDBQT successful.")
-
-            except Exception as e:
-                st.error(f"❌ Error converting {mol_id}: {e}")
-    else:
-        st.info("🔍 Please select one molecule from the table to convert.")
 else:
-    st.warning("⚠️ consensus_df not found. Please complete previous steps.")
+    st.warning("⚠️ consensus_df không tồn tại. Vui lòng chạy các bước trước.")
+
