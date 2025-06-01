@@ -123,103 +123,92 @@ if st.button("Generate ECFP4 Fingerprints"):
     else:
         st.warning("Please complete Step 3 first.")
 
-# === 5. QSAR SCREENING ===
+# === 5. PAINS FILTER ===
 st.header("Step 5: IRAK4 QSAR Screening")
 
+def run_qsar_prediction():
+    data = st.session_state.df_split.copy()
+
+    # === Binary Classification ===
+    with open('model1/rf_binary_813_tuned.pkl', 'rb') as f:
+        clf = pickle.load(f)
+    X_bin = data.drop(['ID', 'standardized'], axis=1)
+    prob_bin = clf.predict_proba(X_bin)[:, 1]
+
+    bin_df = pd.DataFrame({
+        'ID': data['ID'],
+        'standardized': data['standardized'],
+        'label_prob': np.round(prob_bin, 4),
+        'label': (prob_bin >= 0.5).astype(int)
+    })
+
+    # === Regression Prediction ===
+    with open('model1/xgb_regression_764_tuned.pkl', 'rb') as f:
+        xgb = pickle.load(f)
+    pred_reg = xgb.predict(X_bin)
+    reg_df = pd.DataFrame({
+        'ID': data['ID'],
+        'standardized': data['standardized'],
+        'predicted_pIC50': np.round(pred_reg, 4),
+        'label': (pred_reg >= -np.log10(8e-9)).astype(int)
+    })
+
+    # === Consensus Actives ===
+    consensus_df = bin_df[bin_df.label == 1].merge(
+        reg_df[reg_df.label == 1], on=['ID', 'standardized']
+    )[['ID', 'standardized', 'label_prob', 'predicted_pIC50']]
+
+    st.session_state.result = bin_df
+    st.session_state.result_reg = reg_df
+    st.session_state.consensus = consensus_df
+    st.session_state.qsar_done = True
+
+# === Kiểm tra và hiển thị nút
 if "df_split" not in st.session_state:
     st.warning("⚠️ Please generate ECFP4 fingerprints in Step 4 first to unlock prediction.")
 else:
-    data = st.session_state.df_split.copy()
-
-    if st.button("Run Prediction"):
+    if st.button("Run QSAR Prediction"):
         try:
-            # === Binary Classification ===
-            with open('model1/rf_binary_813_tuned.pkl', 'rb') as f:
-                clf = pickle.load(f)
-            X_bin = data.drop(['ID', 'standardized'], axis=1)
-            prob_bin = clf.predict_proba(X_bin)[:, 1]
-
-            bin_df = pd.DataFrame({
-                'ID': data['ID'],
-                'standardized': data['standardized'],
-                'label_prob': np.round(prob_bin, 4),
-                'label': (prob_bin >= 0.5).astype(int)
-            })
-
-            # === Regression Prediction ===
-            with open('model1/xgb_regression_764_tuned.pkl', 'rb') as f:
-                xgb = pickle.load(f)
-            pred_reg = xgb.predict(X_bin)
-            reg_df = pd.DataFrame({
-                'ID': data['ID'],
-                'standardized': data['standardized'],
-                'predicted_pIC50': np.round(pred_reg, 4),
-                'label': (pred_reg >= -np.log10(8e-9)).astype(int)
-            })
-
-            # === Consensus Actives ===
-            consensus_df = bin_df[bin_df.label == 1].merge(
-                reg_df[reg_df.label == 1], on=['ID', 'standardized']
-            )[['ID', 'standardized', 'label_prob', 'predicted_pIC50']]
-
-            # === Save to session_state
-            st.session_state.result = bin_df
-            st.session_state.result_reg = reg_df
-            st.session_state.consensus = consensus_df
-
-            st.success("✅ Prediction complete. Scroll down to view results.")
-
-            # === Display Results ===
-            st.subheader("🧪 Binary Predicted Actives")
-            df_binary_active = bin_df[bin_df['label'] == 1][['ID', 'standardized', 'label_prob', 'label']]
-            gb_bin = GridOptionsBuilder.from_dataframe(df_binary_active)
-            gb_bin.configure_default_column(filterable=True, sortable=True)
-            grid_options_bin = gb_bin.build()
-            AgGrid(
-                df_binary_active,
-                gridOptions=grid_options_bin,
-                enable_enterprise_modules=False,
-                fit_columns_on_grid_load=True,
-                height=300,
-                theme='alpine'
-            )
-
-            st.subheader("📈 Regression Predicted Actives")
-            df_reg_active = reg_df[reg_df['label'] == 1][['ID', 'standardized', 'predicted_pIC50', 'label']]
-            gb_reg = GridOptionsBuilder.from_dataframe(df_reg_active)
-            gb_reg.configure_default_column(filterable=True, sortable=True)
-            grid_options_reg = gb_reg.build()
-            AgGrid(
-                df_reg_active,
-                gridOptions=grid_options_reg,
-                enable_enterprise_modules=False,
-                fit_columns_on_grid_load=True,
-                height=300,
-                theme='alpine'
-            )
-
-            st.subheader("📊 Consensus Actives")
-            gb_consensus = GridOptionsBuilder.from_dataframe(consensus_df)
-            gb_consensus.configure_default_column(filterable=True, sortable=True)
-            grid_options_consensus = gb_consensus.build()
-            AgGrid(
-                consensus_df,
-                gridOptions=grid_options_consensus,
-                enable_enterprise_modules=False,
-                fit_columns_on_grid_load=True,
-                height=400,
-                theme='alpine'
-            )
-            # === Nút lưu Consensus thành CSV ===
-            csv = consensus_df.to_csv(index=False).encode('utf-8')
-            st.download_button(
-                label="📥 Download Consensus CSV",
-                data=csv,
-                file_name='consensus_actives.csv',
-                mime='text/csv'
-            )
+            run_qsar_prediction()
+            st.success("✅ Step 5 completed.")
         except Exception as e:
-            st.error(f"❌ Prediction error: {e}")
+            st.error(f"Prediction error: {e}")
+
+# === Nếu đã chạy thành công thì hiển thị kết quả
+if st.session_state.get("qsar_done", False):
+    st.subheader("🧪 Binary Predicted Actives")
+    df_binary_active = st.session_state.result
+    df_binary_active = df_binary_active[df_binary_active['label'] == 1][['ID', 'standardized', 'label_prob', 'label']]
+    gb_bin = GridOptionsBuilder.from_dataframe(df_binary_active)
+    gb_bin.configure_default_column(filterable=True, sortable=True)
+    grid_options_bin = gb_bin.build()
+    AgGrid(df_binary_active, gridOptions=grid_options_bin, height=300, theme='alpine')
+
+    st.subheader("📈 Regression Predicted Actives")
+    df_reg_active = st.session_state.result_reg
+    df_reg_active = df_reg_active[df_reg_active['label'] == 1][['ID', 'standardized', 'predicted_pIC50', 'label']]
+    gb_reg = GridOptionsBuilder.from_dataframe(df_reg_active)
+    gb_reg.configure_default_column(filterable=True, sortable=True)
+    grid_options_reg = gb_reg.build()
+    AgGrid(df_reg_active, gridOptions=grid_options_reg, height=300, theme='alpine')
+
+    st.subheader("📊 Consensus Actives")
+    consensus_df = st.session_state.consensus
+    gb_consensus = GridOptionsBuilder.from_dataframe(consensus_df)
+    gb_consensus.configure_default_column(filterable=True, sortable=True)
+    grid_options_consensus = gb_consensus.build()
+    AgGrid(consensus_df, gridOptions=grid_options_consensus, height=400, theme='alpine')
+
+    # === Nút lưu Consensus thành CSV ===
+    csv = consensus_df.to_csv(index=False).encode('utf-8')
+    st.download_button(
+    label="📥 Download Consensus CSV",
+    data=csv,
+    file_name='consensus_actives.csv',
+    mime='text/csv'
+    )
+    except Exception as e:
+        st.error(f"❌ Prediction error: {e}")
 
 
 
