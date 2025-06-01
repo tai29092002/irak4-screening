@@ -13,15 +13,6 @@ from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
 import os
 from st_flexible_callout_elements import flexible_info
 
-flexible_info(
-    "ℹ️ Đây là thông báo thông tin tùy chỉnh",
-    background_color="#D0F0FF",   # Màu nền xanh nhẹ
-    font_color="#003366",         # Màu chữ xanh đậm
-    font_size=14,
-    padding=12,
-    border_radius=8
-)
-
 custom_css = {
     ".ag-root-wrapper": {"border-radius": "12px"},
     ".ag-header": {"font-size": "16px", "background-color": "#F7D1BA"},
@@ -37,6 +28,7 @@ flexible_info(
     font_size=14,
     padding=12,
     border_radius=8
+)
 # st.info('This application is designed to predict potent IRAK4 inhibitors')
 
 # === 1. UPLOAD ===
