@@ -331,7 +331,7 @@ if "consensus" in st.session_state:
 
     st.subheader("📋 Select one molecule")
 
-    # Tạo bảng AgGrid chỉ chọn 1 dòng
+    # Cấu hình AgGrid cho phép chọn 1 dòng
     gb = GridOptionsBuilder.from_dataframe(df)
     gb.configure_default_column(filterable=True, sortable=True)
     gb.configure_selection(selection_mode="single", use_checkbox=True)
@@ -349,33 +349,34 @@ if "consensus" in st.session_state:
 
     selected_rows = grid_response["selected_rows"]
 
-    if len(selected_rows) > 0:
-        row = selected_rows[0]
-        mol_id = row['ID']
-        smi = row['standardized']
+    # Kiểm tra chọn dòng và lấy thông tin SMILES
+    if isinstance(selected_rows, list) and len(selected_rows) > 0:
+        row = selected_rows[0]  # row là một dict
+        mol_id = row.get('ID')
+        smiles = row.get('standardized')
+
         st.success(f"✅ Selected molecule: {mol_id}")
+        st.code(smiles, language="smiles")
 
         if st.button("🚀 Convert to PDBQT"):
             try:
-                # RDKit: SMILES -> 3D mol
-                mol = Chem.MolFromSmiles(smi)
+                mol = Chem.MolFromSmiles(smiles)
                 mol = Chem.AddHs(mol)
                 AllChem.EmbedMolecule(mol, AllChem.ETKDG())
                 AllChem.UFFOptimizeMolecule(mol)
 
-                # Tạo thư mục output
                 output_dir = "ligands_pdbqt"
                 os.makedirs(output_dir, exist_ok=True)
 
-                # Lưu .pdb và chuyển sang .pdbqt
                 pdb_path = os.path.join(output_dir, f"{mol_id}.pdb")
                 pdbqt_path = os.path.join(output_dir, f"{mol_id}.pdbqt")
 
                 Chem.MolToPDBFile(mol, pdb_path)
 
+                # Gọi Open Babel để chuyển sang .pdbqt
                 subprocess.run(["obabel", pdb_path, "-O", pdbqt_path], check=True)
 
-                # Tải .pdbqt
+                # Nút tải về
                 with open(pdbqt_path, "rb") as f:
                     st.download_button(
                         label=f"⬇️ Download {mol_id}.pdbqt",
@@ -388,6 +389,6 @@ if "consensus" in st.session_state:
             except Exception as e:
                 st.error(f"❌ Error converting {mol_id}: {e}")
     else:
-        st.info("🔍 Please select one molecule to convert.")
+        st.info("🔍 Please select one molecule from the table to convert.")
 else:
-    st.warning("⚠️ consensus_df not available. Please run screening first.")
+    st.warning("⚠️ consensus_df not found. Please complete previous steps.")
