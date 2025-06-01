@@ -1,15 +1,44 @@
 # === STREAMLIT APP FOR IRAK4 SCREENING ===
 
 import streamlit as st
+
+# Style cho AgGrid
 st.markdown("""
     <style>
-    .ag-theme-alpine {
+    /* Áp dụng cho theme AgGrid 'alpine' hoặc 'material' */
+    .ag-theme-alpine, .ag-theme-material {
         border-radius: 12px;
         overflow: hidden;
         border: 1px solid #ddd;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        padding: 4px;
+    }
+
+    /* Cột tiêu đề */
+    .ag-header {
+        background-color: #f7f9fb !important;
+        font-weight: bold;
+        font-size: 14px;
+    }
+
+    /* Ô dữ liệu */
+    .ag-cell {
+        font-size: 13px;
+        padding: 4px;
+    }
+
+    /* Highlight khi hover */
+    .ag-row-hover {
+        background-color: #f1faff !important;
+    }
+
+    /* Bo góc cho từng cell (nhẹ) nếu thích */
+    .ag-cell {
+        border-radius: 4px;
     }
     </style>
 """, unsafe_allow_html=True)
+
 import pickle
 import numpy as np
 import pandas as pd
