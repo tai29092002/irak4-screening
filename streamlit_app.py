@@ -13,6 +13,16 @@ from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
 import os
 import streamlit as st
 
+st.markdown("""
+    <style>
+    .ag-theme-alpine {
+        border-radius: 12px;
+        overflow: hidden;
+        border: 1px solid #ddd;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
 st.title('IRAK4 SCREENING')
 st.info('This application is designed to predict potent IRAK4 inhibitors')
 
