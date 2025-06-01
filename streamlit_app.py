@@ -13,21 +13,17 @@ from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
 import os
 import streamlit as st
 
-#import streamlit as st
-
-st.markdown("""
+# Lấy giá trị secondaryBackgroundColor từ cấu hình
+secondary_bg_color = st.get_option("theme.secondaryBackgroundColor")
+st.markdown(f"""
     <style>
-    /* Nền bảng bên trong màu trắng, không viền, không bóng */
-    .stDataFrame div[data-testid="stDataFrame"] {
-        background-color: white !important;
-    }
-
-    /* Nếu dùng st.table */
-    .stTable {
-        background-color: white !important;
-    }
+    .stDataFrame div[data-testid="stDataFrame"] {{
+        background-color: {secondary_bg_color} !important;
+    }}
+    .stTable {{
+        background-color: {secondary_bg_color} !important;
+    }}
     </style>
-""", unsafe_allow_html=True)
 
 st.title('IRAK4 SCREENING')
 st.info('This application is designed to predict potent IRAK4 inhibitors')
