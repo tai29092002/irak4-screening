@@ -120,7 +120,6 @@ if st.button("Generate ECFP4 Fingerprints"):
         df_out = pd.concat([df[['ID', 'standardized']].reset_index(drop=True), df_fp.reset_index(drop=True)], axis=1)
         st.session_state.df_split = df_out
         st.success("✅ Step 4 completed.")
-        st.dataframe(df_out.head())
     else:
         st.warning("Please complete Step 3 first.")
 
