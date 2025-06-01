@@ -53,8 +53,10 @@ if st.button("Create Dataset", type="primary"):
             ids = df[id_col] if id_col and id_col in df.columns else [f"molecule{i+1}" for i in range(len(df))]
             df_new = pd.DataFrame({'ID': ids, 'SMILES': df[smiles_col]})
             st.session_state.df_new = df_new
-            st.warning("✅ Step 1 completed.")
-            
+            flexible_callout(
+                message="✅ Step 2 completed.",
+                **CALLOUT_CONFIG  # <-- unpack dict
+            )
             # AgGrid hiển thị df_new
             gb = GridOptionsBuilder.from_dataframe(df_new)
             gb.configure_default_column(filterable=True, sortable=True)
