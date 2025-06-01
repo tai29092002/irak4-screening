@@ -42,7 +42,10 @@ smiles_col = st.text_input("SMILES column (required)", value="", placeholder="e.
 
 if st.button("Create Dataset", type="primary"):
     if uploaded_file is None:
-        st.warning("Please upload a file.")
+        flexible_callout(
+            message="Please upload file.",
+            **CALLOUT_CONFIG  # <-- unpack dict
+        )
     elif not smiles_col.strip():
         st.warning("Please enter SMILES column name.")
     else:
@@ -54,7 +57,7 @@ if st.button("Create Dataset", type="primary"):
             df_new = pd.DataFrame({'ID': ids, 'SMILES': df[smiles_col]})
             st.session_state.df_new = df_new
             flexible_callout(
-                message="🎯 Step 2 completed.",
+                message="🎯 Step 1 completed.",
                 **CALLOUT_CONFIG  # <-- unpack dict
             )
             # AgGrid hiển thị df_new
@@ -96,15 +99,20 @@ if st.button("Standardize", type="primary"):
         df = st.session_state.df_new.copy()
         df["standardized"] = standardize_smiles(df.SMILES)
         st.session_state.df_standardized = df
-        st.warning("✅ Step 2 completed.")
-        
+        flexible_callout(
+            message="🎯 Step 2 completed.",
+            **CALLOUT_CONFIG  # <-- unpack dict
+        )
         # Hiển thị bằng AgGrid
         gb = GridOptionsBuilder.from_dataframe(df)
         gb.configure_default_column(filterable=True, sortable=True)
         grid_options = gb.build()
         AgGrid(df, gridOptions=grid_options, height=300, theme="alpine",custom_css=custom_css)
     else:
-        st.warning("Please complete Step 1 first.")
+        flexible_callout(
+            message="Please complete Step 1 first.",
+            **CALLOUT_CONFIG  # <-- unpack dict
+        )
 
 # === 3. PAINS FILTER ===
 st.header("Step 3: PAINS Filter")
@@ -126,7 +134,10 @@ if st.button("Run", type="primary"):
 
         raw_pains = pd.DataFrame(clean)
         st.session_state.df_select = raw_pains.copy()
-        st.warning("✅ Step 3 completed.")
+        flexible_callout(
+            message="🎯 Step 3 completed.",
+            **CALLOUT_CONFIG  # <-- unpack dict
+        )
 
         # Hiển thị bảng raw_pains bằng AgGrid
         gb = GridOptionsBuilder.from_dataframe(raw_pains)
@@ -134,7 +145,10 @@ if st.button("Run", type="primary"):
         grid_options = gb.build()
         AgGrid(raw_pains, gridOptions=grid_options, height=300, theme="alpine",custom_css=custom_css)
     else:
-        st.warning("Please complete Step 2 first.")
+        flexible_callout(
+            message="Please complete Step 2 first.",
+            **CALLOUT_CONFIG  # <-- unpack dict
+        )
 
 # === 4. ECFP4 FINGERPRINTS ===
 st.header("Step 4: Compute Fingerprints")
@@ -156,9 +170,15 @@ if st.button("Generate",type="primary"):
         df_fp = pd.DataFrame(fps.tolist(), columns=[f"bit_{i}" for i in range(2048)])
         df_out = pd.concat([df[['ID', 'standardized']].reset_index(drop=True), df_fp.reset_index(drop=True)], axis=1)
         st.session_state.df_split = df_out
-        st.warning("✅ Step 4 completed.")
+        flexible_callout(
+            message="🎯 Step 4 completed.",
+            **CALLOUT_CONFIG  # <-- unpack dict
+        )
     else:
-        st.warning("Please complete Step 3 first.")
+        flexible_callout(
+            message="Please complete Step 3 first.",
+            **CALLOUT_CONFIG  # <-- unpack dict
+        )
 
 # === 5. QSAR SCREENING ===
 st.header("Step 5: IRAK4 QSAR Screening")
@@ -207,14 +227,22 @@ def run_qsar_prediction():
 # Nút chạy
 if st.button("Run Prediction",type="primary"):
     if "df_split" not in st.session_state:
-        st.warning("⚠️ Please complete Step 4 (ECFP4 Fingerprints) first.")
+        flexible_callout(
+            message="Please complete Step 4 first.",
+            **CALLOUT_CONFIG  # <-- unpack dict
+        )
     else:
         try:
             run_qsar_prediction()
-            st.warning("✅ Step 5 completed.")
+            flexible_callout(
+                message="🎯 Step 4 completed.",
+                **CALLOUT_CONFIG  # <-- unpack dict
+            )
         except Exception as e:
-            st.error(f"❌ Prediction error: {e}")
-
+            flexible_callout(
+                message="❌ Prediction error: {e}",
+                **CALLOUT_CONFIG  # <-- unpack dict
+            )
 # Hiển thị kết quả nếu có
 if st.session_state.get("qsar_done", False):
     # === Binary ===
