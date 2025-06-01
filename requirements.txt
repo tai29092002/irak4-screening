@@ -8,3 +8,4 @@ scikit-learn
 rdkit
 tqdm
 xgboost
+streamlit-aggrid
