@@ -77,7 +77,7 @@ if st.button("Standardize"):
         st.warning("Please complete Step 1 first.")
 
 # === 3. PAINS FILTER ===
-st.header("Step 3: PAINS Filtering")
+st.header("Step 3: PAINS Filter")
 
 if st.button("Run"):
     if "df_standardized" in st.session_state:
