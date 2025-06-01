@@ -125,9 +125,14 @@ if st.button("Generate ECFP4 Fingerprints"):
 # === 5. QSAR SCREENING ===
 st.header("Step 5: IRAK4 QSAR Screening")
 
-if st.button("Run Prediction"):
-    if "df_split" in st.session_state:
+if "df_split" not in st.session_state:
+    st.warning("⚠️ Please generate ECFP4 fingerprints in Step 4 first to unlock prediction.")
+else:
+    data = st.session_state.df_split.copy()
+
+    if st.button("Run Prediction"):
         try:
+            # (toàn bộ phần xử lý mô hình và hiển thị kết quả đặt trong đây)
             df = st.session_state.df_split.copy()
 
             with open('model1/rf_binary_813_tuned.pkl', 'rb') as f:
