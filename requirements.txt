@@ -5,7 +5,8 @@ seaborn
 matplotlib
 ipywidgets
 scikit-learn
-rdkit
+rdkit-pypi
+py3Dmol
 tqdm
 xgboost
 streamlit-aggrid
