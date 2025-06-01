@@ -14,6 +14,9 @@ from PIL import Image
 import io
 import subprocess
 import os
+conda env create -f environment.yml
+conda activate docking-app 
+
 st.title('IRAK4 SCREENING')
 st.info('This application is designed to predict potent IRAK4 inhibitors')
 
