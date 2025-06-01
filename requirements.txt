@@ -9,6 +9,3 @@ rdkit
 tqdm
 xgboost
 streamlit-aggrid
-pillow
-py3Dmol
-rdkit-pypi
