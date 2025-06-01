@@ -13,20 +13,6 @@ from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
 import os
 import streamlit as st
 
-# Lấy màu phụ từ theme config
-bg = st.get_option("theme.secondaryBackgroundColor")
-
-# Ghi đè CSS để đổi màu nền bảng
-st.markdown(f"""
-    <style>
-    .stTable {{
-        background-color: {bg} !important;
-        border-radius: 8px;
-        padding: 8px;
-    }}
-    </style>
-""", unsafe_allow_html=True)
-
 st.title('IRAK4 SCREENING')
 st.info('This application is designed to predict potent IRAK4 inhibitors')
 
@@ -51,7 +37,10 @@ if st.button("Create Dataset",type="primary"):
             df_new = pd.DataFrame({'ID': ids, 'SMILES': df[smiles_col]})
             st.session_state.df_new = df_new
             st.success("✅ Step 1 completed.")
-            st.dataframe(df_new)
+            gb = GridOptionsBuilder.from_dataframe(df_new)
+            gb.configure_default_column(filterable=True, sortable=True)
+            grid_options = gb.build()
+            AgGrid(df, gridOptions=grid_options, height=300, theme="alpine")
 
 # === 2. STANDARDIZATION ===
 st.header("Step 2: Standardize")
@@ -87,7 +76,11 @@ if st.button("Standardize",type="primary"):
         df["standardized"] = standardize_smiles(df.SMILES)
         st.session_state.df_standardized = df
         st.success("✅ Step 2 completed.")
-        st.dataframe(df)
+        gb = GridOptionsBuilder.from_dataframe(df)
+        gb.configure_default_column(filterable=True, sortable=True)
+        grid_options = gb.build()
+        AgGrid(df, gridOptions=grid_options, height=300, theme="alpine")
+
     else:
         st.warning("Please complete Step 1 first.")
 
@@ -110,7 +103,11 @@ if st.button("Run",type="primary"):
         raw_pains = pd.DataFrame(clean)
         st.session_state.df_select = raw_pains.copy()
         st.success("✅ Step 3 completed.")
-        st.dataframe(raw_pains)
+        gb = GridOptionsBuilder.from_dataframe(raw_pains)
+        gb.configure_default_column(filterable=True, sortable=True)
+        grid_options = gb.build()
+        AgGrid(df, gridOptions=grid_options, height=300, theme="alpine")
+
     else:
         st.warning("Please complete Step 2 first.")
 
