@@ -324,7 +324,7 @@ if "consensus" in st.session_state:
         theme='alpine'
     )
 
-st.header("Step 6: Convert Selected to PDBQT")
+st.header("Step 6: Select Molecule and Prepare for Docking")
 
 # Create folder to store output if not exists
 LIGAND_DIR = "ligands_pdbqt"
@@ -334,7 +334,7 @@ if "consensus" in st.session_state:
     df = st.session_state.consensus.copy()
 
     if "selected_mol_id" not in st.session_state:
-        st.subheader("📋 Step 6.1: Select 1 molecule")
+        st.subheader("📋 Step 6: Select 1 molecule from consensus table")
 
         gb = GridOptionsBuilder.from_dataframe(df)
         gb.configure_default_column(filterable=True, sortable=True)
@@ -358,55 +358,14 @@ if "consensus" in st.session_state:
             mol_id = row.get('ID')
             smiles = row.get('standardized')
 
-            with st.expander("🔐 Confirm selected molecule", expanded=True):
-                st.write(f"**Molecule ID:** `{mol_id}`")
-                st.code(smiles, language="smiles")
-                if st.button("✅ Confirm selection"):
-                    st.session_state.selected_mol_id = mol_id
-                    st.session_state.selected_smiles = smiles
-                    st.success("Selection locked.")
-                    st.experimental_rerun()
+            if st.button("✅ Confirm selection"):
+                st.session_state.selected_mol_id = mol_id
+                st.session_state.selected_smiles = smiles
+                st.session_state.selected_df = pd.DataFrame([row])
+                st.success("Selection confirmed.")
+                st.experimental_rerun()
         else:
-            st.info("👉 Please select a row from the table.")
-    else:
-        st.subheader("📦 Step 6.2: Convert SMILES → PDBQT")
-
-        mol_id = st.session_state.selected_mol_id
-        smiles = st.session_state.selected_smiles
-
-        st.success(f"✅ Molecule selected: `{mol_id}`")
-        st.code(smiles, language="smiles")
-
-        pdbqt_path = os.path.join(LIGAND_DIR, f"{mol_id}.pdbqt")
-        if not os.path.exists(pdbqt_path):
-            if st.button("🚀 Convert to PDBQT"):
-                try:
-                    mol = Chem.MolFromSmiles(smiles)
-                    mol = Chem.AddHs(mol)
-                    AllChem.EmbedMolecule(mol, AllChem.ETKDG())
-                    AllChem.UFFOptimizeMolecule(mol)
-
-                    pdb_path = os.path.join(LIGAND_DIR, f"{mol_id}.pdb")
-                    Chem.MolToPDBFile(mol, pdb_path)
-
-                    subprocess.run(["obabel", pdb_path, "-O", pdbqt_path], check=True)
-                    st.success("🎉 .pdbqt file successfully created.")
-                except Exception as e:
-                    st.error(f"❌ Error during conversion: {e}")
-
-        if os.path.exists(pdbqt_path):
-            with open(pdbqt_path, "rb") as f:
-                st.download_button(
-                    label=f"⬇️ Download {mol_id}.pdbqt",
-                    data=f,
-                    file_name=f"{mol_id}.pdbqt"
-                )
-
-        # Option to reset and choose another molecule
-        if st.button("🔁 Choose another molecule"):
-            del st.session_state.selected_mol_id
-            del st.session_state.selected_smiles
-            st.experimental_rerun()
+            st.info("👉 Please select one row from the table.")
 else:
     st.warning("⚠️ consensus_df does not exist. Please run previous steps first.")
 
