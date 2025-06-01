@@ -324,15 +324,17 @@ if "consensus" in st.session_state:
         theme='alpine'
     )
 
-# Hiển thị bảng và cho chọn dòng
-st.subheader("📋 Select ligand(s) to prepare for docking")
+st.header("Step 6: Convert ONE Selected Consensus Ligand to PDBQT")
 
 if "consensus" in st.session_state:
-    df = st.session_state.consensus
+    df = st.session_state.consensus.copy()
 
+    st.subheader("📋 Select one molecule from consensus results")
+
+    # Tạo bảng với chọn 1 dòng duy nhất
     gb = GridOptionsBuilder.from_dataframe(df)
     gb.configure_default_column(filterable=True, sortable=True)
-    gb.configure_selection(selection_mode="multiple", use_checkbox=True)
+    gb.configure_selection(selection_mode="single", use_checkbox=True)
     grid_options = gb.build()
 
     grid_response = AgGrid(
@@ -348,36 +350,37 @@ if "consensus" in st.session_state:
     selected_rows = grid_response["selected_rows"]
 
     if selected_rows:
-        st.success(f"✅ {len(selected_rows)} molecule(s) selected.")
-        if st.button("🚀 Convert selected to PDBQT"):
-            output_dir = "ligands_pdbqt"
-            os.makedirs(output_dir, exist_ok=True)
-            success_count = 0
+        row = selected_rows[0]
+        mol_id = row['ID']
+        smi = row['standardized']
+        st.success(f"✅ Selected molecule: {mol_id}")
 
-            for row in selected_rows:
-                smi = row['standardized']
-                mol_id = row['ID']
-                try:
-                    mol = Chem.MolFromSmiles(smi)
-                    mol = Chem.AddHs(mol)
-                    AllChem.EmbedMolecule(mol, AllChem.ETKDG())
-                    AllChem.UFFOptimizeMolecule(mol)
+        if st.button("🚀 Convert to PDBQT"):
+            try:
+                mol = Chem.MolFromSmiles(smi)
+                mol = Chem.AddHs(mol)
+                AllChem.EmbedMolecule(mol, AllChem.ETKDG())
+                AllChem.UFFOptimizeMolecule(mol)
 
-                    pdb_path = os.path.join(output_dir, f"{mol_id}.pdb")
-                    Chem.MolToPDBFile(mol, pdb_path)
+                output_dir = "ligands_pdbqt"
+                os.makedirs(output_dir, exist_ok=True)
 
-                    pdbqt_path = os.path.join(output_dir, f"{mol_id}.pdbqt")
-                    subprocess.run(["obabel", pdb_path, "-O", pdbqt_path], check=True)
+                pdb_path = os.path.join(output_dir, f"{mol_id}.pdb")
+                pdbqt_path = os.path.join(output_dir, f"{mol_id}.pdbqt")
 
-                    with open(pdbqt_path, "rb") as f:
-                        st.download_button(f"⬇️ Download {mol_id}.pdbqt", f, file_name=f"{mol_id}.pdbqt")
+                Chem.MolToPDBFile(mol, pdb_path)
 
-                    success_count += 1
-                except Exception as e:
-                    st.error(f"❌ Failed for {mol_id}: {e}")
+                subprocess.run(["obabel", pdb_path, "-O", pdbqt_path], check=True)
 
-            if success_count > 0:
-                st.success(f"🎉 {success_count} ligands converted to PDBQT.")
+                with open(pdbqt_path, "rb") as f:
+                    st.download_button(
+                        label=f"⬇️ Download {mol_id}.pdbqt",
+                        data=f,
+                        file_name=f"{mol_id}.pdbqt"
+                    )
+
+                st.success("🎉 Conversion to PDBQT successful.")
+            except Exception as e:
+                st.error(f"❌ Error converting {mol_id}: {e}")
     else:
-        st.info("🔍 Please select one or more molecules to convert.")
-
+        st.info("🔍 Please select one molecule to convert.")
