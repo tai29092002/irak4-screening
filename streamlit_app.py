@@ -327,15 +327,14 @@ if "consensus" in st.session_state:
 
 st.header("Step 6: Select Molecule and Prepare for Docking")
 
-# Create folder to store output if not exists
+# Create output folder if not exists
 LIGAND_DIR = "ligands_pdbqt"
 os.makedirs(LIGAND_DIR, exist_ok=True)
 
 if "consensus" in st.session_state:
     df = st.session_state.consensus.copy()
 
-    # Only allow selection if not previously selected
-    if "selected_mol_id" not in st.session_state and "confirmed" not in st.session_state:
+    if "selected_mol_id" not in st.session_state:
         st.subheader("📋 Step 6: Select 1 molecule from consensus table")
 
         gb = GridOptionsBuilder.from_dataframe(df)
@@ -346,7 +345,7 @@ if "consensus" in st.session_state:
         grid_response = AgGrid(
             df,
             gridOptions=grid_options,
-            update_mode=GridUpdateMode.MODEL_CHANGED,
+            update_mode=GridUpdateMode.SELECTION_CHANGED,
             enable_enterprise_modules=False,
             fit_columns_on_grid_load=True,
             height=400,
@@ -357,25 +356,19 @@ if "consensus" in st.session_state:
 
         if isinstance(selected_rows, list) and len(selected_rows) == 1:
             row = selected_rows[0]
-            mol_id = row.get('ID')
-            smiles = row.get('standardized')
+            mol_id = row.get("ID")
+            smiles = row.get("standardized")
 
-            with st.expander("🔐 Confirm selection", expanded=True):
-                st.markdown(f"You have selected molecule **{mol_id}**")
-                if st.button("✅ Confirm this molecule"):
-                    st.session_state.selected_mol_id = mol_id
-                    st.session_state.selected_smiles = smiles
-                    st.session_state.selected_df = pd.DataFrame([row])
-                    st.session_state.confirmed = True
-                    st.success(f"✅ Molecule '{mol_id}' has been successfully selected and locked.")
-                    st.experimental_rerun()
-        else:
-            st.info("👉 Please select one row from the table.")
+            # Lưu ngay vào session và khóa lựa chọn
+            st.session_state.selected_mol_id = mol_id
+            st.session_state.selected_smiles = smiles
+            st.session_state.selected_df = pd.DataFrame([row])
+            st.success(f"✅ Molecule '{mol_id}' has been selected and locked.")
+            st.experimental_rerun()
 
-    elif "selected_mol_id" in st.session_state:
-        st.success(f"✅ Molecule '{st.session_state.selected_mol_id}' has already been selected and locked.")
-        st.info("To select another molecule, reset your selection.")
-else:
-    st.warning("⚠️ consensus_df does not exist. Please run previous steps first.")
+    else:
+        st.success(f"✅ Molecule '{st.session_state.selected_mol_id}' is already selected and locked.")
+        st.info("To select a different molecule, reset your selection.")
+
 
 
