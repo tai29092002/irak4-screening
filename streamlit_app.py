@@ -7,7 +7,10 @@ from rdkit.Chem.MolStandardize import rdMolStandardize
 from tqdm.auto import tqdm
 from rdkit.Chem import FilterCatalog
 from rdkit.Chem import AllChem
-from st_aggrid import AgGrid, GridOptionsBuilder
+from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
+from rdkit.Chem import AllChem
+import subprocess
+import os
 st.title('IRAK4 SCREENING')
 st.info('This application is designed to predict potent IRAK4 inhibitors')
 
@@ -320,3 +323,61 @@ if "consensus" in st.session_state:
         height=400,
         theme='alpine'
     )
+
+# Hiển thị bảng và cho chọn dòng
+st.subheader("📋 Select ligand(s) to prepare for docking")
+
+if "consensus" in st.session_state:
+    df = st.session_state.consensus
+
+    gb = GridOptionsBuilder.from_dataframe(df)
+    gb.configure_default_column(filterable=True, sortable=True)
+    gb.configure_selection(selection_mode="multiple", use_checkbox=True)
+    grid_options = gb.build()
+
+    grid_response = AgGrid(
+        df,
+        gridOptions=grid_options,
+        update_mode=GridUpdateMode.MODEL_CHANGED,
+        enable_enterprise_modules=False,
+        fit_columns_on_grid_load=True,
+        height=400,
+        theme='alpine'
+    )
+
+    selected_rows = grid_response["selected_rows"]
+
+    if selected_rows:
+        st.success(f"✅ {len(selected_rows)} molecule(s) selected.")
+        if st.button("🚀 Convert selected to PDBQT"):
+            output_dir = "ligands_pdbqt"
+            os.makedirs(output_dir, exist_ok=True)
+            success_count = 0
+
+            for row in selected_rows:
+                smi = row['standardized']
+                mol_id = row['ID']
+                try:
+                    mol = Chem.MolFromSmiles(smi)
+                    mol = Chem.AddHs(mol)
+                    AllChem.EmbedMolecule(mol, AllChem.ETKDG())
+                    AllChem.UFFOptimizeMolecule(mol)
+
+                    pdb_path = os.path.join(output_dir, f"{mol_id}.pdb")
+                    Chem.MolToPDBFile(mol, pdb_path)
+
+                    pdbqt_path = os.path.join(output_dir, f"{mol_id}.pdbqt")
+                    subprocess.run(["obabel", pdb_path, "-O", pdbqt_path], check=True)
+
+                    with open(pdbqt_path, "rb") as f:
+                        st.download_button(f"⬇️ Download {mol_id}.pdbqt", f, file_name=f"{mol_id}.pdbqt")
+
+                    success_count += 1
+                except Exception as e:
+                    st.error(f"❌ Failed for {mol_id}: {e}")
+
+            if success_count > 0:
+                st.success(f"🎉 {success_count} ligands converted to PDBQT.")
+    else:
+        st.info("🔍 Please select one or more molecules to convert.")
+
