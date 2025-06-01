@@ -16,8 +16,8 @@ st.markdown("""
     <style>
     .stAlert[data-testid="stAlert-success"] {
         background-color: #FFDCCC;
-        color: #003366;
-        border-left: 5px solid #00BFFF;
+        color: #FFDCCC;
+        border-left: 5px solid #FFDCCC;
     }
     </style>
 """, unsafe_allow_html=True)
