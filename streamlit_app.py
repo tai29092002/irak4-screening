@@ -10,6 +10,8 @@ from rdkit.Chem import AllChem
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
 from rdkit.Chem import AllChem
 from rdkit.Chem import Draw
+from PIL import Image
+import io
 import subprocess
 import os
 st.title('IRAK4 SCREENING')
