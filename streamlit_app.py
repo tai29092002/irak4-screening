@@ -11,6 +11,16 @@ from rdkit.Chem.FilterCatalog import FilterCatalog, FilterCatalogParams
 from rdkit.Chem import AllChem
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
 import os
+from st_flexible_callout_elements import flexible_info
+
+flexible_info(
+    "ℹ️ Đây là thông báo thông tin tùy chỉnh",
+    background_color="#D0F0FF",   # Màu nền xanh nhẹ
+    font_color="#003366",         # Màu chữ xanh đậm
+    font_size=14,
+    padding=12,
+    border_radius=8
+)
 
 custom_css = {
     ".ag-root-wrapper": {"border-radius": "12px"},
@@ -20,7 +30,14 @@ custom_css = {
 }  
 
 st.title('IRAK4 SCREENING')
-st.info('This application is designed to predict potent IRAK4 inhibitors')
+flexible_info(
+    "This application is designed to predict potent IRAK4 inhibitors",
+    background_color="#D0F0FF",   # Màu nền xanh nhẹ
+    font_color="#003366",         # Màu chữ xanh đậm
+    font_size=14,
+    padding=12,
+    border_radius=8
+# st.info('This application is designed to predict potent IRAK4 inhibitors')
 
 # === 1. UPLOAD ===
 st.header("Step 1: Upload and extract ID & SMILES")
