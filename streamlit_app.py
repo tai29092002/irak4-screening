@@ -12,16 +12,6 @@ from rdkit.Chem import AllChem
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
 import os
 
-st.markdown("""
-    <style>
-    .stAlert[data-testid="stAlert-success"] {
-        background-color: #FFDCCC;
-        color: #FFDCCC;
-        border-left: 5px solid #FFDCCC;
-    }
-    </style>
-""", unsafe_allow_html=True)
-
 custom_css = {
     ".ag-root-wrapper": {"border-radius": "12px"},
     ".ag-header": {"font-size": "16px", "background-color": "#F7D1BA"},
@@ -52,7 +42,7 @@ if st.button("Create Dataset", type="primary"):
             ids = df[id_col] if id_col and id_col in df.columns else [f"molecule{i+1}" for i in range(len(df))]
             df_new = pd.DataFrame({'ID': ids, 'SMILES': df[smiles_col]})
             st.session_state.df_new = df_new
-            st.success("✅ Step 1 completed.")
+            st.warning("✅ Step 1 completed.")
             
             # AgGrid hiển thị df_new
             gb = GridOptionsBuilder.from_dataframe(df_new)
