@@ -15,12 +15,12 @@ from st_flexible_callout_elements import flexible_callout
 
 custom_css = {
     ".ag-root-wrapper": {"border-radius": "8px"},
-    ".ag-header": {"font-size": "16px", "background-color": "#D0F0FF"},
+    ".ag-header": {"font-size": "16px", "background-color": "#FFDAB3"},
     ".ag-cell": {"font-size": "14px", "padding": "4px"},
     ".ag-row-hover": {"background-color": "#FCE7C8"},
 }  
 CALLOUT_CONFIG = {
-    "background_color": "#D0F0FF",
+    "background_color": "#FFDAB3",
     "font_color": "#003366",
     "font_size": 15,
     "border_radius": 8,
