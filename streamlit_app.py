@@ -204,7 +204,9 @@ if st.button("Generate ECFP4 Fingerprints"):
 st.header("Step 5: IRAK4 QSAR Screening")
 st.caption("Predict binary actives and pIC50 values using pretrained models.")
 
-if "df_split" in st.session_state:
+if "df_split" not in st.session_state:
+    st.warning("⚠️ Please generate ECFP4 fingerprints in Step 4 first to unlock prediction.")
+    st.stop()
     data = st.session_state.df_split.copy()
 
     if st.button("Run Prediction"):
