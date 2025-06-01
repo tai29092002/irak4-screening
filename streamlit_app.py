@@ -79,7 +79,7 @@ if st.button("Standardize"):
 # === 3. PAINS FILTER ===
 st.header("Step 3: PAINS Filtering")
 
-if st.button("Run PAINS Filter"):
+if st.button("Run"):
     if "df_standardized" in st.session_state:
         df = st.session_state.df_standardized.copy()
         params = FilterCatalogParams()
@@ -100,9 +100,9 @@ if st.button("Run PAINS Filter"):
         st.warning("Please complete Step 2 first.")
 
 # === 4. ECFP4 FINGERPRINTS ===
-st.header("Step 4: Compute ECFP4 Fingerprints")
+st.header("Step 4: Compute Fingerprints")
 
-if st.button("Generate ECFP4 Fingerprints"):
+if st.button("Generate"):
     if "df_select" in st.session_state:
         df = st.session_state.df_select.copy()
 
@@ -168,7 +168,7 @@ def run_qsar_prediction():
     st.session_state.qsar_done = True
 
 # Nút chạy
-if st.button("Run QSAR Prediction"):
+if st.button("Run Prediction"):
     if "df_split" not in st.session_state:
         st.warning("⚠️ Please complete Step 4 (ECFP4 Fingerprints) first.")
     else:
