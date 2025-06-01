@@ -244,6 +244,7 @@ if st.button("Run Prediction"):
         IC50_nM = 8
         IC50_M = IC50_nM * 1e-9
         base_pIC50 = -np.log10(IC50_M)
+        screening_reg['predicted_pIC50'] = pd.to_numeric(screening_reg['predicted_pIC50'], errors='coerce')
 
         screening_reg['label'] = (screening_reg['predicted_pIC50'] >= base_pIC50).astype(int)
 
