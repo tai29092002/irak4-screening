@@ -190,6 +190,7 @@ if st.session_state.get("qsar_done", False):
     st.subheader("📈 Regression Predicted Actives")
     df_reg_active = st.session_state.result_reg
     df_reg_active = df_reg_active[df_reg_active['label'] == 1][['ID', 'standardized', 'predicted_pIC50']]
+    df_reg_active['predicted_pIC50'] = df_reg_active['predicted_pIC50'].round(4)
     gb_reg = GridOptionsBuilder.from_dataframe(df_reg_active)
     gb_reg.configure_default_column(filterable=True, sortable=True)
     grid_options_reg = gb_reg.build()
