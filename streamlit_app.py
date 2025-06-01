@@ -272,55 +272,55 @@ if "df_split" in st.session_state:
             st.session_state.consensus = consensus_df
             st.success("✅ Prediction complete. Scroll down to view results.")
 
+            # === Hiển thị bảng kết quả Binary ===
+            st.subheader("🧪 Binary Predicted Actives")
+            df_binary_active = screening_bin[screening_bin['label'] == 1][['ID', 'standardized', 'label_prob', 'label']]
+            gb_bin = GridOptionsBuilder.from_dataframe(df_binary_active)
+            gb_bin.configure_default_column(filterable=True, sortable=True)
+            grid_options_bin = gb_bin.build()
+            AgGrid(
+                df_binary_active,
+                gridOptions=grid_options_bin,
+                enable_enterprise_modules=False,
+                fit_columns_on_grid_load=True,
+                height=300,
+                theme='alpine'
+            )
+
+            # === Hiển thị bảng kết quả Regression ===
+            st.subheader("📈 Regression Predicted Actives")
+            df_reg_active = screening_reg[screening_reg['label'] == 1][['ID', 'standardized', 'predicted_pIC50', 'label']]
+            gb_reg = GridOptionsBuilder.from_dataframe(df_reg_active)
+            gb_reg.configure_default_column(filterable=True, sortable=True)
+            grid_options_reg = gb_reg.build()
+            AgGrid(
+                df_reg_active,
+                gridOptions=grid_options_reg,
+                enable_enterprise_modules=False,
+                fit_columns_on_grid_load=True,
+                height=300,
+                theme='alpine'
+            )
+
+            # === Hiển thị bảng Consensus ===
+            st.subheader("📊 Consensus Actives")
+            gb_consensus = GridOptionsBuilder.from_dataframe(consensus_df)
+            gb_consensus.configure_default_column(filterable=True, sortable=True)
+            grid_options_consensus = gb_consensus.build()
+            AgGrid(
+                consensus_df,
+                gridOptions=grid_options_consensus,
+                enable_enterprise_modules=False,
+                fit_columns_on_grid_load=True,
+                height=400,
+                theme='alpine'
+            )
+
         except Exception as e:
             st.error(f"❌ Lỗi khi xử lý dữ liệu prediction: {e}")
 else:
     st.warning("⚠️ Please generate ECFP4 fingerprints in Step 4 first to unlock prediction.")
 
-# === Hiển thị bảng kết quả nếu có ===
-if "result" in st.session_state:
-    st.subheader("🧪 Binary Predicted Actives")
-    df_binary_active = st.session_state.result[st.session_state.result['label'] == 1][['ID', 'standardized', 'label_prob', 'label']]
-    gb_bin = GridOptionsBuilder.from_dataframe(df_binary_active)
-    gb_bin.configure_default_column(filterable=True, sortable=True)
-    grid_options_bin = gb_bin.build()
-    AgGrid(
-        df_binary_active,
-        gridOptions=grid_options_bin,
-        enable_enterprise_modules=False,
-        fit_columns_on_grid_load=True,
-        height=300,
-        theme='alpine'
-    )
-
-if "result_reg" in st.session_state:
-    st.subheader("📈 Regression Predicted Actives")
-    df_reg_active = st.session_state.result_reg[st.session_state.result_reg['label'] == 1][['ID', 'standardized', 'predicted_pIC50', 'label']]
-    gb_reg = GridOptionsBuilder.from_dataframe(df_reg_active)
-    gb_reg.configure_default_column(filterable=True, sortable=True)
-    grid_options_reg = gb_reg.build()
-    AgGrid(
-        df_reg_active,
-        gridOptions=grid_options_reg,
-        enable_enterprise_modules=False,
-        fit_columns_on_grid_load=True,
-        height=300,
-        theme='alpine'
-    )
-
-if "consensus" in st.session_state:
-    st.subheader("📊 Consensus Actives")
-    gb = GridOptionsBuilder.from_dataframe(st.session_state.consensus)
-    gb.configure_default_column(filterable=True, sortable=True)
-    grid_options = gb.build()
-    AgGrid(
-        st.session_state.consensus,
-        gridOptions=grid_options,
-        enable_enterprise_modules=False,
-        fit_columns_on_grid_load=True,
-        height=400,
-        theme='alpine'
-    )
 
 
 
