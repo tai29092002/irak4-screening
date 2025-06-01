@@ -137,7 +137,9 @@ if "df_standardized" in st.session_state:
 
             matches_df = pd.DataFrame(matches)
             raw_pains = df_pains.loc[clean]
-
+            
+            st.session_state.df_select = raw_pains.copy()
+            
             # Hiển thị kết quả
             st.subheader("PAINS Matches")
             if not matches_df.empty:
@@ -150,6 +152,7 @@ if "df_standardized" in st.session_state:
             st.dataframe(raw_pains)
 else:
     st.warning("⚠️ Please complete the 'Standardize' step first.")
+
 
 # === 5. ECFP4-2048 ===
 tqdm.pandas()
