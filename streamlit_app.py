@@ -200,86 +200,82 @@ if st.button("Generate ECFP4 Fingerprints"):
         st.session_state.df_split = df_split  # Lưu vào session
         st.success("✅ ECFP4 fingerprints computed and stored.")
 
-# === 6. SCREENING ===
+# === 5. IRAK4 SCREENING ===
 st.header("Step 5: IRAK4 QSAR Screening")
+st.caption("Predict binary actives and pIC50 values using pretrained models.")
 
-# Đảm bảo fingerprint đã được tính
-if "df_split" not in st.session_state:
-    st.warning("⚠️ Please generate ECFP4 fingerprints first.")
-    st.stop()
-else:
+if "df_split" in st.session_state:
     data = st.session_state.df_split.copy()
 
-# Nút chạy cả hai mô hình
-if st.button("Run Prediction"):
-    try:
-        # === Binary Classification ===
-        with open('model1/rf_binary_813_tuned.pkl', 'rb') as file:
-            rf_model = pickle.load(file)
+    if st.button("Run Prediction"):
+        try:
+            # === Binary Classification ===
+            with open('model1/rf_binary_813_tuned.pkl', 'rb') as file:
+                rf_model = pickle.load(file)
 
-        X_bin = data.drop(['ID', 'standardized'], axis=1)
-        prob_bin = rf_model.predict_proba(X_bin)[:, 1]
+            X_bin = data.drop(['ID', 'standardized'], axis=1)
+            prob_bin = rf_model.predict_proba(X_bin)[:, 1]
 
-        screening_bin = pd.DataFrame({
-            'ID': data['ID'],
-            'standardized': data['standardized'],
-            'label_prob': np.round(prob_bin, 4),
-            'label': np.where(prob_bin >= 0.5, 1, 0)
-        })
+            screening_bin = pd.DataFrame({
+                'ID': data['ID'],
+                'standardized': data['standardized'],
+                'label_prob': np.round(prob_bin, 4),
+                'label': np.where(prob_bin >= 0.5, 1, 0)
+            })
 
-        st.session_state.result = screening_bin.copy()
+            st.session_state.result = screening_bin.copy()
 
-        # === Regression Prediction ===
-        with open('model1/xgb_regression_764_tuned.pkl', 'rb') as file:
-            xgb_model = pickle.load(file)
+            # === Regression Prediction ===
+            with open('model1/xgb_regression_764_tuned.pkl', 'rb') as file:
+                xgb_model = pickle.load(file)
 
-        X_reg = data.drop(['ID', 'standardized'], axis=1)
-        predicted_pIC50 = xgb_model.predict(X_reg)
+            X_reg = data.drop(['ID', 'standardized'], axis=1)
+            predicted_pIC50 = xgb_model.predict(X_reg)
 
-        screening_reg = pd.DataFrame({
-            'ID': data['ID'],
-            'standardized': data['standardized'],
-            'predicted_pIC50': [f"{v:.4f}" for v in predicted_pIC50]
-        })
+            screening_reg = pd.DataFrame({
+                'ID': data['ID'],
+                'standardized': data['standardized'],
+                'predicted_pIC50': [f"{v:.4f}" for v in predicted_pIC50]
+            })
 
-        IC50_nM = 8
-        IC50_M = IC50_nM * 1e-9
-        base_pIC50 = -np.log10(IC50_M)
-        screening_reg['predicted_pIC50'] = pd.to_numeric(screening_reg['predicted_pIC50'], errors='coerce')
+            IC50_nM = 8
+            IC50_M = IC50_nM * 1e-9
+            base_pIC50 = -np.log10(IC50_M)
+            screening_reg['predicted_pIC50'] = pd.to_numeric(screening_reg['predicted_pIC50'], errors='coerce')
+            screening_reg['label'] = (screening_reg['predicted_pIC50'] >= base_pIC50).astype(int)
 
-        screening_reg['label'] = (screening_reg['predicted_pIC50'] >= base_pIC50).astype(int)
+            st.session_state.result_reg = screening_reg.copy()
 
-        st.session_state.result_reg = screening_reg.copy()
+            # === Consensus Actives ===
+            actives_bin = screening_bin[screening_bin['label'] == 1]
+            actives_reg = screening_reg[screening_reg['label'] == 1]
 
-        # === Consensus Actives ===
-        actives_bin = screening_bin[screening_bin['label'] == 1]
-        actives_reg = screening_reg[screening_reg['label'] == 1]
+            consensus_df = pd.merge(
+                actives_bin[['ID', 'standardized']],
+                actives_reg[['ID', 'standardized']],
+                on=['ID', 'standardized'],
+                how='inner'
+            )
 
-        consensus_df = pd.merge(
-            actives_bin[['ID', 'standardized']],
-            actives_reg[['ID', 'standardized']],
-            on=['ID', 'standardized'],
-            how='inner'
-        )
+            consensus_df = pd.merge(
+                consensus_df,
+                screening_bin[['ID', 'label_prob']],
+                on='ID', how='left'
+            )
 
-        consensus_df = pd.merge(
-            consensus_df,
-            screening_bin[['ID', 'label_prob']],
-            on='ID', how='left'
-        )
+            consensus_df = pd.merge(
+                consensus_df,
+                screening_reg[['ID', 'predicted_pIC50']],
+                on='ID', how='left'
+            )
 
-        consensus_df = pd.merge(
-            consensus_df,
-            screening_reg[['ID', 'predicted_pIC50']],
-            on='ID', how='left'
-        )
+            st.session_state.consensus = consensus_df
+            st.success("✅ Prediction complete. Scroll down to view results.")
 
-        st.session_state.consensus = consensus_df
-
-        st.success("✅ Prediction complete. Scroll down to view results.")
-
-    except Exception as e:
-        st.error(f"❌ Lỗi khi xử lý dữ liệu prediction: {e}")
+        except Exception as e:
+            st.error(f"❌ Lỗi khi xử lý dữ liệu prediction: {e}")
+else:
+    st.warning("⚠️ Please generate ECFP4 fingerprints in Step 4 first to unlock prediction.")
 
 # === Hiển thị bảng kết quả nếu có ===
 if "result" in st.session_state:
