@@ -72,44 +72,48 @@ def standardize_smiles(batch):
             result.append(None)
     return result
 
-if st.button("Standardize",type="primary"):
+if st.button("Standardize", type="primary"):
     if "df_new" in st.session_state:
         df = st.session_state.df_new.copy()
         df["standardized"] = standardize_smiles(df.SMILES)
         st.session_state.df_standardized = df
         st.success("✅ Step 2 completed.")
+        
+        # Hiển thị bằng AgGrid
         gb = GridOptionsBuilder.from_dataframe(df)
         gb.configure_default_column(filterable=True, sortable=True)
         grid_options = gb.build()
         AgGrid(df, gridOptions=grid_options, height=300, theme="alpine")
-
     else:
         st.warning("Please complete Step 1 first.")
 
 # === 3. PAINS FILTER ===
 st.header("Step 3: PAINS Filter")
 
-if st.button("Run",type="primary"):
+if st.button("Run", type="primary"):
     if "df_standardized" in st.session_state:
         df = st.session_state.df_standardized.copy()
         params = FilterCatalogParams()
         params.AddCatalog(FilterCatalogParams.FilterCatalogs.PAINS)
         catalog = FilterCatalog(params)
         clean, matches = [], []
+
         for _, row in df.iterrows():
             mol = Chem.MolFromSmiles(row['standardized'])
             if mol and catalog.GetFirstMatch(mol):
                 matches.append(row)
             elif mol:
                 clean.append(row)
+
         raw_pains = pd.DataFrame(clean)
         st.session_state.df_select = raw_pains.copy()
         st.success("✅ Step 3 completed.")
+
+        # Hiển thị bảng raw_pains bằng AgGrid
         gb = GridOptionsBuilder.from_dataframe(raw_pains)
         gb.configure_default_column(filterable=True, sortable=True)
         grid_options = gb.build()
-        AgGrid(df, gridOptions=grid_options, height=300, theme="alpine")
-
+        AgGrid(raw_pains, gridOptions=grid_options, height=300, theme="alpine")
     else:
         st.warning("Please complete Step 2 first.")
 
