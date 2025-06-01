@@ -9,6 +9,7 @@ from rdkit.Chem import FilterCatalog
 from rdkit.Chem import AllChem
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
 from rdkit.Chem import AllChem
+from rdkit.Chem import Draw
 import subprocess
 import os
 st.title('IRAK4 SCREENING')
@@ -334,10 +335,20 @@ os.makedirs(LIGAND_DIR, exist_ok=True)
 if "consensus" in st.session_state:
     df = st.session_state.consensus.copy()
 
-    # Nếu đã chọn, hiển thị thông tin và không cho chọn lại
     if "selected_mol_id" in st.session_state:
-        st.success(f"✅ Molecule '{st.session_state.selected_mol_id}' has been selected and locked.")
-        st.dataframe(st.session_state.selected_df)
+        mol_id = st.session_state.selected_mol_id
+        smiles = st.session_state.selected_smiles
+
+        st.success(f"✅ Molecule '{mol_id}' has been selected and locked.")
+
+        mol = Chem.MolFromSmiles(smiles)
+        if mol:
+            st.subheader("🔬 2D Structure of Selected Molecule")
+            img = Draw.MolToImage(mol, size=(300, 300))
+            st.image(img, caption=f"2D Structure of {mol_id}")
+        else:
+            st.error("❌ Failed to generate molecule from SMILES.")
+
     else:
         st.subheader("📋 Step 6: Select 1 molecule from consensus table")
 
@@ -363,9 +374,9 @@ if "consensus" in st.session_state:
             mol_id = row.get("ID")
             smiles = row.get("standardized")
 
-            # Lưu vào session
             st.session_state.selected_mol_id = mol_id
             st.session_state.selected_smiles = smiles
             st.session_state.selected_df = pd.DataFrame([row])
             st.success(f"✅ Molecule '{mol_id}' has been selected and locked.")
             st.experimental_rerun()
+
