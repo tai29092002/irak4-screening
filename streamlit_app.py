@@ -235,7 +235,7 @@ if st.button("Run Prediction",type="primary"):
         try:
             run_qsar_prediction()
             flexible_callout(
-                message="🎯 Step 4 completed.",
+                message="🎯 Step 5 completed.",
                 **CALLOUT_CONFIG  # <-- unpack dict
             )
         except Exception as e:
