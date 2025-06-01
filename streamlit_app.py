@@ -158,26 +158,27 @@ def run_qsar_prediction():
         reg_df[reg_df.label == 1], on=['ID', 'standardized']
     )[['ID', 'standardized', 'label_prob', 'predicted_pIC50']]
 
-    # Lưu vào session_state
+    # Lưu kết quả
     st.session_state.result = bin_df
     st.session_state.result_reg = reg_df
     st.session_state.consensus = consensus_df
     st.session_state.qsar_done = True
 
-# === Kiểm tra trạng thái và nút chạy
-if "df_split" not in st.session_state:
-    st.warning("⚠️ Please generate ECFP4 fingerprints in Step 4 first to unlock prediction.")
-else:
-    if st.button("Run QSAR Prediction"):
+# Luôn hiển thị nút
+run_button = st.button("Run QSAR Prediction")
+
+if run_button:
+    if "df_split" not in st.session_state:
+        st.warning("⚠️ Please complete Step 4 (ECFP4 Fingerprints) first.")
+    else:
         try:
             run_qsar_prediction()
             st.success("✅ Step 5 completed.")
         except Exception as e:
             st.error(f"❌ Prediction error: {e}")
 
-# === Nếu đã chạy thì hiển thị kết quả
+# Hiển thị kết quả nếu đã xong
 if st.session_state.get("qsar_done", False):
-    # --- Binary Results
     st.subheader("🧪 Binary Predicted Actives")
     df_binary_active = st.session_state.result.query("label == 1")[['ID', 'standardized', 'label_prob', 'label']]
     gb_bin = GridOptionsBuilder.from_dataframe(df_binary_active)
@@ -185,7 +186,6 @@ if st.session_state.get("qsar_done", False):
     grid_options_bin = gb_bin.build()
     AgGrid(df_binary_active, gridOptions=grid_options_bin, height=300, theme='alpine')
 
-    # --- Regression Results
     st.subheader("📈 Regression Predicted Actives")
     df_reg_active = st.session_state.result_reg.query("label == 1")[['ID', 'standardized', 'predicted_pIC50', 'label']]
     gb_reg = GridOptionsBuilder.from_dataframe(df_reg_active)
@@ -193,7 +193,6 @@ if st.session_state.get("qsar_done", False):
     grid_options_reg = gb_reg.build()
     AgGrid(df_reg_active, gridOptions=grid_options_reg, height=300, theme='alpine')
 
-    # --- Consensus Results
     st.subheader("📊 Consensus Actives")
     consensus_df = st.session_state.consensus
     gb_consensus = GridOptionsBuilder.from_dataframe(consensus_df)
@@ -201,7 +200,6 @@ if st.session_state.get("qsar_done", False):
     grid_options_consensus = gb_consensus.build()
     AgGrid(consensus_df, gridOptions=grid_options_consensus, height=400, theme='alpine')
 
-    # --- Nút tải CSV
     csv = consensus_df.to_csv(index=False).encode('utf-8')
     st.download_button(
         label="📥 Download Consensus CSV",
