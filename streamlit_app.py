@@ -39,7 +39,7 @@ if st.button("Create Dataset"):
             st.dataframe(df_new)
 
 # === 2. STANDARDIZATION ===
-st.header("Step 2: Standardize SMILES")
+st.header("Step 2: Standardize")
 
 def standardize_smiles(batch):
     uc = rdMolStandardize.Uncharger()
