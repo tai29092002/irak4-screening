@@ -1,0 +1,13 @@
+name: docking-app
+channels:
+  - conda-forge
+dependencies:
+  - python
+  - rdkit
+  - pandas
+  - pillow
+  - streamlit
+  - py3Dmol
+  - pip
+  - pip:
+      - streamlit-aggrid
