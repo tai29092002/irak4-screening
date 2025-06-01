@@ -134,88 +134,87 @@ else:
 
     if st.button("Run Prediction"):
         try:
-            # (toàn bộ phần xử lý mô hình và hiển thị kết quả đặt trong đây)
-            df = st.session_state.df_split.copy()
-
+            # === Binary Classification ===
             with open('model1/rf_binary_813_tuned.pkl', 'rb') as f:
                 clf = pickle.load(f)
-            X_bin = df.drop(['ID', 'standardized'], axis=1)
+            X_bin = data.drop(['ID', 'standardized'], axis=1)
             prob_bin = clf.predict_proba(X_bin)[:, 1]
 
             bin_df = pd.DataFrame({
-                'ID': df['ID'],
-                'standardized': df['standardized'],
+                'ID': data['ID'],
+                'standardized': data['standardized'],
                 'label_prob': np.round(prob_bin, 4),
                 'label': (prob_bin >= 0.5).astype(int)
             })
 
+            # === Regression Prediction ===
             with open('model1/xgb_regression_764_tuned.pkl', 'rb') as f:
                 xgb = pickle.load(f)
             pred_reg = xgb.predict(X_bin)
             reg_df = pd.DataFrame({
-                'ID': df['ID'],
-                'standardized': df['standardized'],
+                'ID': data['ID'],
+                'standardized': data['standardized'],
                 'predicted_pIC50': np.round(pred_reg, 4),
                 'label': (pred_reg >= -np.log10(8e-9)).astype(int)
             })
 
+            # === Consensus Actives ===
+            consensus_df = bin_df[bin_df.label == 1].merge(
+                reg_df[reg_df.label == 1], on=['ID', 'standardized']
+            )[['ID', 'standardized', 'label_prob', 'predicted_pIC50']]
+
+            # === Save to session_state
             st.session_state.result = bin_df
             st.session_state.result_reg = reg_df
+            st.session_state.consensus = consensus_df
 
-            consensus = bin_df[bin_df.label == 1].merge(reg_df[reg_df.label == 1], on=['ID', 'standardized'])
-            consensus = consensus[['ID', 'standardized', 'label_prob', 'predicted_pIC50']]
-            st.session_state.consensus = consensus
-            st.success("✅ Step 5 completed.")
+            st.success("✅ Prediction complete. Scroll down to view results.")
 
-            st.subheader("Consensus Actives")
-            # === Hiển thị bảng kết quả Binary ===
-st.subheader("🧪 Binary Predicted Actives")
-df_binary_active = screening_bin[screening_bin['label'] == 1][['ID', 'standardized', 'label_prob', 'label']]
-gb_bin = GridOptionsBuilder.from_dataframe(df_binary_active)
-gb_bin.configure_default_column(filterable=True, sortable=True)
-grid_options_bin = gb_bin.build()
-AgGrid(
-    df_binary_active,
-    gridOptions=grid_options_bin,
-    enable_enterprise_modules=False,
-    fit_columns_on_grid_load=True,
-    height=300,
-    theme='alpine'
-)
+            # === Display Results ===
+            st.subheader("🧪 Binary Predicted Actives")
+            df_binary_active = bin_df[bin_df['label'] == 1][['ID', 'standardized', 'label_prob', 'label']]
+            gb_bin = GridOptionsBuilder.from_dataframe(df_binary_active)
+            gb_bin.configure_default_column(filterable=True, sortable=True)
+            grid_options_bin = gb_bin.build()
+            AgGrid(
+                df_binary_active,
+                gridOptions=grid_options_bin,
+                enable_enterprise_modules=False,
+                fit_columns_on_grid_load=True,
+                height=300,
+                theme='alpine'
+            )
 
-# === Hiển thị bảng kết quả Regression ===
-st.subheader("📈 Regression Predicted Actives")
-df_reg_active = screening_reg[screening_reg['label'] == 1][['ID', 'standardized', 'predicted_pIC50', 'label']]
-gb_reg = GridOptionsBuilder.from_dataframe(df_reg_active)
-gb_reg.configure_default_column(filterable=True, sortable=True)
-grid_options_reg = gb_reg.build()
-AgGrid(
-    df_reg_active,
-    gridOptions=grid_options_reg,
-    enable_enterprise_modules=False,
-    fit_columns_on_grid_load=True,
-    height=300,
-    theme='alpine'
-)
+            st.subheader("📈 Regression Predicted Actives")
+            df_reg_active = reg_df[reg_df['label'] == 1][['ID', 'standardized', 'predicted_pIC50', 'label']]
+            gb_reg = GridOptionsBuilder.from_dataframe(df_reg_active)
+            gb_reg.configure_default_column(filterable=True, sortable=True)
+            grid_options_reg = gb_reg.build()
+            AgGrid(
+                df_reg_active,
+                gridOptions=grid_options_reg,
+                enable_enterprise_modules=False,
+                fit_columns_on_grid_load=True,
+                height=300,
+                theme='alpine'
+            )
 
-# === Hiển thị bảng Consensus ===
-st.subheader("📊 Consensus Actives")
-gb_consensus = GridOptionsBuilder.from_dataframe(consensus_df)
-gb_consensus.configure_default_column(filterable=True, sortable=True)
-grid_options_consensus = gb_consensus.build()
-AgGrid(
-    consensus_df,
-    gridOptions=grid_options_consensus,
-    enable_enterprise_modules=False,
-    fit_columns_on_grid_load=True,
-    height=400,
-    theme='alpine'
-)
+            st.subheader("📊 Consensus Actives")
+            gb_consensus = GridOptionsBuilder.from_dataframe(consensus_df)
+            gb_consensus.configure_default_column(filterable=True, sortable=True)
+            grid_options_consensus = gb_consensus.build()
+            AgGrid(
+                consensus_df,
+                gridOptions=grid_options_consensus,
+                enable_enterprise_modules=False,
+                fit_columns_on_grid_load=True,
+                height=400,
+                theme='alpine'
+            )
 
         except Exception as e:
-            st.error(f"Prediction error: {e}")
-    else:
-        st.warning("Please complete Step 4 first.")
+            st.error(f"❌ Prediction error: {e}")
+
 
 
 
