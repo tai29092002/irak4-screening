@@ -8,7 +8,6 @@ from tqdm.auto import tqdm
 from rdkit.Chem import FilterCatalog
 from rdkit.Chem import AllChem
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
-from rdkit.Chem import AllChem
 from rdkit.Chem import Draw
 from PIL import Image
 import io
