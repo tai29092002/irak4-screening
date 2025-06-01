@@ -22,7 +22,7 @@ custom_css = {
 CALLOUT_CONFIG = {
     "background_color": "#FFDAB3",
     "font_color": "#003366",
-    "font_size": 15,
+    "font_size": 17,
     "border_radius": 8,
     "padding": 10,
     "margin_bottom": 10
