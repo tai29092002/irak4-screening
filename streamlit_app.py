@@ -12,6 +12,16 @@ from rdkit.Chem import AllChem
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
 import os
 
+st.markdown("""
+    <style>
+    .stAlert[data-testid="stAlert-success"] {
+        background-color: #D0F0FF;
+        color: #003366;
+        border-left: 5px solid #00BFFF;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
 custom_css = {
     ".ag-root-wrapper": {"border-radius": "12px"},
     ".ag-header": {"font-size": "16px", "background-color": "#F7D1BA"},
