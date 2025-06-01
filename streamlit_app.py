@@ -83,7 +83,7 @@ if st.button("Standardize", type="primary"):
         df = st.session_state.df_new.copy()
         df["standardized"] = standardize_smiles(df.SMILES)
         st.session_state.df_standardized = df
-        st.success("✅ Step 2 completed.")
+        st.warning("✅ Step 2 completed.")
         
         # Hiển thị bằng AgGrid
         gb = GridOptionsBuilder.from_dataframe(df)
@@ -113,7 +113,7 @@ if st.button("Run", type="primary"):
 
         raw_pains = pd.DataFrame(clean)
         st.session_state.df_select = raw_pains.copy()
-        st.success("✅ Step 3 completed.")
+        st.warning("✅ Step 3 completed.")
 
         # Hiển thị bảng raw_pains bằng AgGrid
         gb = GridOptionsBuilder.from_dataframe(raw_pains)
@@ -143,7 +143,7 @@ if st.button("Generate",type="primary"):
         df_fp = pd.DataFrame(fps.tolist(), columns=[f"bit_{i}" for i in range(2048)])
         df_out = pd.concat([df[['ID', 'standardized']].reset_index(drop=True), df_fp.reset_index(drop=True)], axis=1)
         st.session_state.df_split = df_out
-        st.success("✅ Step 4 completed.")
+        st.warning("✅ Step 4 completed.")
     else:
         st.warning("Please complete Step 3 first.")
 
@@ -198,7 +198,7 @@ if st.button("Run Prediction",type="primary"):
     else:
         try:
             run_qsar_prediction()
-            st.success("✅ Step 5 completed.")
+            st.warning("✅ Step 5 completed.")
         except Exception as e:
             st.error(f"❌ Prediction error: {e}")
 
