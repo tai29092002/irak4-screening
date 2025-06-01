@@ -278,7 +278,7 @@ if st.button("Run Prediction"):
 
 # === Hiển thị bảng kết quả nếu có ===
 if "result" in st.session_state:
-    st.subheader("🧪 Binary Predicted Actives (Filter + Sort)")
+    st.subheader("🧪 Binary Predicted Actives")
     df_binary_active = st.session_state.result[st.session_state.result['label'] == 1][['ID', 'standardized', 'label_prob', 'label']]
     gb_bin = GridOptionsBuilder.from_dataframe(df_binary_active)
     gb_bin.configure_default_column(filterable=True, sortable=True)
@@ -293,7 +293,7 @@ if "result" in st.session_state:
     )
 
 if "result_reg" in st.session_state:
-    st.subheader("📈 Regression Predicted Actives (Filter + Sort)")
+    st.subheader("📈 Regression Predicted Actives")
     df_reg_active = st.session_state.result_reg[st.session_state.result_reg['label'] == 1][['ID', 'standardized', 'predicted_pIC50', 'label']]
     gb_reg = GridOptionsBuilder.from_dataframe(df_reg_active)
     gb_reg.configure_default_column(filterable=True, sortable=True)
@@ -308,7 +308,7 @@ if "result_reg" in st.session_state:
     )
 
 if "consensus" in st.session_state:
-    st.subheader("📊 Consensus Actives (Filter + Sort)")
+    st.subheader("📊 Consensus Actives")
     gb = GridOptionsBuilder.from_dataframe(st.session_state.consensus)
     gb.configure_default_column(filterable=True, sortable=True)
     grid_options = gb.build()
