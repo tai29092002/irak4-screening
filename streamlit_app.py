@@ -8,7 +8,7 @@ from tqdm.auto import tqdm
 from rdkit.Chem import FilterCatalog
 from rdkit.Chem import AllChem
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
-from rdkit.Chem.Draw import MolToImage
+from rdkit.Chem.Draw import rdMolDraw2D
 from PIL import Image
 import io
 import subprocess
