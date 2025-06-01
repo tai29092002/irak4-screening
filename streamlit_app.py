@@ -334,7 +334,8 @@ os.makedirs(LIGAND_DIR, exist_ok=True)
 if "consensus" in st.session_state:
     df = st.session_state.consensus.copy()
 
-    if "selected_mol_id" not in st.session_state:
+    # Only allow selection if not previously selected
+    if "selected_mol_id" not in st.session_state and "confirmed" not in st.session_state:
         st.subheader("📋 Step 6: Select 1 molecule from consensus table")
 
         gb = GridOptionsBuilder.from_dataframe(df)
@@ -354,7 +355,7 @@ if "consensus" in st.session_state:
 
         selected_rows = grid_response["selected_rows"]
 
-        if isinstance(selected_rows, list) and len(selected_rows) > 0:
+        if isinstance(selected_rows, list) and len(selected_rows) == 1:
             row = selected_rows[0]
             mol_id = row.get('ID')
             smiles = row.get('standardized')
@@ -365,12 +366,13 @@ if "consensus" in st.session_state:
                     st.session_state.selected_mol_id = mol_id
                     st.session_state.selected_smiles = smiles
                     st.session_state.selected_df = pd.DataFrame([row])
+                    st.session_state.confirmed = True
                     st.success(f"✅ Molecule '{mol_id}' has been successfully selected and locked.")
                     st.experimental_rerun()
         else:
             st.info("👉 Please select one row from the table.")
 
-    else:
+    elif "selected_mol_id" in st.session_state:
         st.success(f"✅ Molecule '{st.session_state.selected_mol_id}' has already been selected and locked.")
         st.info("To select another molecule, reset your selection.")
 else:
