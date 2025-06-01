@@ -11,6 +11,26 @@ from rdkit.Chem.FilterCatalog import FilterCatalog, FilterCatalogParams
 from rdkit.Chem import AllChem
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
 import os
+import streamlit as st
+
+# Ghi đè màu nền của bảng thành trắng
+st.markdown("""
+    <style>
+    /* Chỉnh bảng Dataframe và Table về nền trắng */
+    .stDataFrame, .stTable {
+        background-color: white !important;
+        border-radius: 10px;
+        padding: 10px;
+    }
+
+    /* Ngoài ra cũng có thể chỉnh phần wrapper để chắc chắn */
+    .element-container:has(.stDataFrame) {
+        background-color: white !important;
+        border-radius: 10px;
+        padding: 10px;
+    }
+    </style>
+""", unsafe_allow_html=True)
 
 st.title('IRAK4 SCREENING')
 st.info('This application is designed to predict potent IRAK4 inhibitors')
