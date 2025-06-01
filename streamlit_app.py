@@ -1,44 +1,6 @@
 # === STREAMLIT APP FOR IRAK4 SCREENING ===
 
 import streamlit as st
-
-# Style cho AgGrid
-st.markdown("""
-    <style>
-    /* Áp dụng cho theme AgGrid 'alpine' hoặc 'material' */
-    .ag-theme-alpine, .ag-theme-material {
-        border-radius: 12px;
-        overflow: hidden;
-        border: 1px solid #ddd;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-        padding: 4px;
-    }
-
-    /* Cột tiêu đề */
-    .ag-header {
-        background-color: #f7f9fb !important;
-        font-weight: bold;
-        font-size: 14px;
-    }
-
-    /* Ô dữ liệu */
-    .ag-cell {
-        font-size: 13px;
-        padding: 4px;
-    }
-
-    /* Highlight khi hover */
-    .ag-row-hover {
-        background-color: #f1faff !important;
-    }
-
-    /* Bo góc cho từng cell (nhẹ) nếu thích */
-    .ag-cell {
-        border-radius: 4px;
-    }
-    </style>
-""", unsafe_allow_html=True)
-
 import pickle
 import numpy as np
 import pandas as pd
@@ -49,6 +11,13 @@ from rdkit.Chem.FilterCatalog import FilterCatalog, FilterCatalogParams
 from rdkit.Chem import AllChem
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
 import os
+
+custom_css = {
+    ".ag-root-wrapper": {"border-radius": "12px"},
+    ".ag-header": {"font-size": "14px", "background-color": "#f7f9fb"},
+    ".ag-cell": {"font-size": "13px", "padding": "4px"},
+    ".ag-row-hover": {"background-color": "#f1faff"},
+}  
 
 st.title('IRAK4 SCREENING')
 st.info('This application is designed to predict potent IRAK4 inhibitors')
@@ -79,7 +48,7 @@ if st.button("Create Dataset", type="primary"):
             gb = GridOptionsBuilder.from_dataframe(df_new)
             gb.configure_default_column(filterable=True, sortable=True)
             grid_options = gb.build()
-            AgGrid(df_new, gridOptions=grid_options, height=300, theme="alpine")
+            AgGrid(df_new, gridOptions=grid_options, height=300, theme="alpine", custom_css=custom_css)
 
 # === 2. STANDARDIZATION ===
 st.header("Step 2: Standardize")
