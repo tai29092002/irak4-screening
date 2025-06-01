@@ -238,7 +238,7 @@ if st.button("Run Prediction"):
         screening_reg = pd.DataFrame({
             'ID': data['ID'],
             'standardized': data['standardized'],
-            'predicted_pIC50': np.round(predicted_pIC50, 4)
+            'predicted_pIC50': [f"{v:.4f}" for v in predicted_pIC50]
         })
 
         IC50_nM = 8
@@ -324,9 +324,9 @@ if "consensus" in st.session_state:
         theme='alpine'
     )
 
-st.header("Step 7: Convert Selecte to PDBQT")
+st.header("Step 6: Convert Selected to PDBQT")
 
-# Tạo thư mục lưu file nếu chưa có
+# Create folder to store output if not exists
 LIGAND_DIR = "ligands_pdbqt"
 os.makedirs(LIGAND_DIR, exist_ok=True)
 
@@ -334,7 +334,7 @@ if "consensus" in st.session_state:
     df = st.session_state.consensus.copy()
 
     if "selected_mol_id" not in st.session_state:
-        st.subheader("📋 Select one molecule from consensus results")
+        st.subheader("📋 Step 6.1: Select 1 molecule")
 
         gb = GridOptionsBuilder.from_dataframe(df)
         gb.configure_default_column(filterable=True, sortable=True)
@@ -358,23 +358,23 @@ if "consensus" in st.session_state:
             mol_id = row.get('ID')
             smiles = row.get('standardized')
 
-            st.info(f"🔎 Bạn đã chọn: **{mol_id}**")
-            st.code(smiles, language="smiles")
-
-            # Nút xác nhận lựa chọn
-            if st.button("✅ Xác nhận lựa chọn"):
-                st.session_state.selected_mol_id = mol_id
-                st.session_state.selected_smiles = smiles
-                st.success(f"✅ Đã xác nhận chọn: {mol_id}")
-                st.experimental_rerun()
+            with st.expander("🔐 Confirm selected molecule", expanded=True):
+                st.write(f"**Molecule ID:** `{mol_id}`")
+                st.code(smiles, language="smiles")
+                if st.button("✅ Confirm selection"):
+                    st.session_state.selected_mol_id = mol_id
+                    st.session_state.selected_smiles = smiles
+                    st.success("Selection locked.")
+                    st.experimental_rerun()
         else:
-            st.info("🔍 Vui lòng chọn một dòng từ bảng.")
+            st.info("👉 Please select a row from the table.")
     else:
-        # Nếu đã chọn rồi thì chuyển sang phần xử lý
+        st.subheader("📦 Step 6.2: Convert SMILES → PDBQT")
+
         mol_id = st.session_state.selected_mol_id
         smiles = st.session_state.selected_smiles
 
-        st.success(f"✅ Molecule đã được chọn: {mol_id}")
+        st.success(f"✅ Molecule selected: `{mol_id}`")
         st.code(smiles, language="smiles")
 
         pdbqt_path = os.path.join(LIGAND_DIR, f"{mol_id}.pdbqt")
@@ -390,24 +390,24 @@ if "consensus" in st.session_state:
                     Chem.MolToPDBFile(mol, pdb_path)
 
                     subprocess.run(["obabel", pdb_path, "-O", pdbqt_path], check=True)
-                    st.success("🎉 Tạo file .pdbqt thành công.")
+                    st.success("🎉 .pdbqt file successfully created.")
                 except Exception as e:
-                    st.error(f"❌ Lỗi khi chuyển: {e}")
+                    st.error(f"❌ Error during conversion: {e}")
 
         if os.path.exists(pdbqt_path):
             with open(pdbqt_path, "rb") as f:
                 st.download_button(
-                    label=f"⬇️ Tải {mol_id}.pdbqt",
+                    label=f"⬇️ Download {mol_id}.pdbqt",
                     data=f,
                     file_name=f"{mol_id}.pdbqt"
                 )
 
-        # Nút reset để chọn lại nếu muốn
-        if st.button("🔁 Chọn lại molecule khác"):
+        # Option to reset and choose another molecule
+        if st.button("🔁 Choose another molecule"):
             del st.session_state.selected_mol_id
             del st.session_state.selected_smiles
             st.experimental_rerun()
-
 else:
-    st.warning("⚠️ consensus_df không tồn tại. Vui lòng chạy các bước trước.")
+    st.warning("⚠️ consensus_df does not exist. Please run previous steps first.")
+
 
