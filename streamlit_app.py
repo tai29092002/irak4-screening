@@ -14,8 +14,8 @@ import os
 
 custom_css = {
     ".ag-root-wrapper": {"border-radius": "12px"},
-    ".ag-header": {"font-size": "14px", "background-color": "#EFF8FF"},
-    ".ag-cell": {"font-size": "13px", "padding": "4px"},
+    ".ag-header": {"font-size": "16px", "background-color": "#D49A89"},
+    ".ag-cell": {"font-size": "14px", "padding": "4px"},
     ".ag-row-hover": {"background-color": "#FFE2E2"},
 }  
 
