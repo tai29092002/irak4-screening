@@ -210,7 +210,14 @@ else:
                 height=400,
                 theme='alpine'
             )
-
+            # === Nút lưu Consensus thành CSV ===
+            csv = consensus_df.to_csv(index=False).encode('utf-8')
+            st.download_button(
+                label="📥 Download Consensus CSV",
+                data=csv,
+                file_name='consensus_actives.csv',
+                mime='text/csv'
+            )
         except Exception as e:
             st.error(f"❌ Prediction error: {e}")
 
