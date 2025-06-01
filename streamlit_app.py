@@ -328,57 +328,5 @@ if "consensus" in st.session_state:
         theme='alpine'
     )
 
-st.header("Step 6: Select Molecule and Prepare for Docking")
 
-# Create output folder if not exists
-LIGAND_DIR = "ligands_pdbqt"
-os.makedirs(LIGAND_DIR, exist_ok=True)
-
-if "consensus" in st.session_state:
-    df = st.session_state.consensus.copy()
-
-    if "selected_mol_id" in st.session_state:
-        mol_id = st.session_state.selected_mol_id
-        smiles = st.session_state.selected_smiles
-
-        st.success(f"✅ Molecule '{mol_id}' has been selected and locked.")
-
-        mol = Chem.MolFromSmiles(smiles)
-        if mol:
-            st.subheader("🔬 2D Structure of Selected Molecule")
-            img = Draw.MolToImage(mol, size=(300, 300))
-            st.image(img, caption=f"2D Structure of {mol_id}")
-        else:
-            st.error("❌ Failed to generate molecule from SMILES.")
-
-    else:
-        st.subheader("📋 Step 6: Select 1 molecule from consensus table")
-
-        gb = GridOptionsBuilder.from_dataframe(df)
-        gb.configure_default_column(filterable=True, sortable=True)
-        gb.configure_selection(selection_mode="single", use_checkbox=True)
-        grid_options = gb.build()
-
-        grid_response = AgGrid(
-            df,
-            gridOptions=grid_options,
-            update_mode=GridUpdateMode.SELECTION_CHANGED,
-            enable_enterprise_modules=False,
-            fit_columns_on_grid_load=True,
-            height=400,
-            theme='alpine'
-        )
-
-        selected_rows = grid_response["selected_rows"]
-
-        if isinstance(selected_rows, list) and len(selected_rows) == 1:
-            row = selected_rows[0]
-            mol_id = row.get("ID")
-            smiles = row.get("standardized")
-
-            st.session_state.selected_mol_id = mol_id
-            st.session_state.selected_smiles = smiles
-            st.session_state.selected_df = pd.DataFrame([row])
-            st.success(f"✅ Molecule '{mol_id}' has been selected and locked.")
-            st.experimental_rerun()
 
