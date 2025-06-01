@@ -295,3 +295,5 @@ if st.button("Run Prediction"):
             height=500,
             theme='alpine'
         )
+except Exception as e:
+    st.error(f"❌ Lỗi khi xử lý dữ liệu consensus: {e}")
