@@ -150,7 +150,7 @@ def run_qsar_prediction():
         'ID': data['ID'],
         'standardized': data['standardized'],
         'predicted_pIC50': np.round(pred_reg, 4),
-        'label': (pred_reg >= -np.log10(8e-9)).astype(int)
+        'label': (pred_reg >= -np.log10(8e-9)).astype(float)
     })
 
     # === Consensus Actives ===
