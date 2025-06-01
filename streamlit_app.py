@@ -7,6 +7,7 @@ from rdkit.Chem.MolStandardize import rdMolStandardize
 from tqdm.auto import tqdm
 from rdkit.Chem import FilterCatalog
 from rdkit.Chem import AllChem
+from st_aggrid import AgGrid, GridOptionsBuilder
 st.title('IRAK4 SCREENING')
 st.info('This application is designed to predict potent IRAK4 inhibitors')
 
