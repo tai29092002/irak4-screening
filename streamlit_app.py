@@ -19,18 +19,20 @@ custom_css = {
     ".ag-cell": {"font-size": "14px", "padding": "4px"},
     ".ag-row-hover": {"background-color": "#FCE7C8"},
 }  
+CALLOUT_CONFIG = {
+    "background_color": "#D0F0FF",
+    "font_color": "#003366",
+    "font_size": 14,
+    "border_radius": 8,
+    "padding": 10,
+    "margin_bottom": 10
+}
 
 st.title('IRAK4 SCREENING')
 flexible_callout(
     message="This application is designed to predict potent IRAK4 inhibitors",
-    background_color="#D0F0FF",
-    font_color="#003366",
-    font_size=15,
-    border_radius=8,
-    padding=10,
-    margin_bottom=10
+    **CALLOUT_CONFIG  # <-- unpack dict
 )
-
 # === 1. UPLOAD ===
 st.header("Step 1: Upload and extract ID & SMILES")
 
