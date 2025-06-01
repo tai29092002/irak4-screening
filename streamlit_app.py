@@ -54,7 +54,7 @@ if st.button("Create Dataset", type="primary"):
             df_new = pd.DataFrame({'ID': ids, 'SMILES': df[smiles_col]})
             st.session_state.df_new = df_new
             flexible_callout(
-                message="✅ Step 2 completed.",
+                message="✔️ Step 2 completed.",
                 **CALLOUT_CONFIG  # <-- unpack dict
             )
             # AgGrid hiển thị df_new
