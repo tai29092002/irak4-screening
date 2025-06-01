@@ -13,18 +13,19 @@ from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
 import os
 import streamlit as st
 
-# Lấy màu phụ từ config
-secondary_bg_color = st.get_option("theme.secondaryBackgroundColor")
+# Lấy màu phụ từ theme config
+bg = st.get_option("theme.secondaryBackgroundColor")
 
-# Chèn CSS để đổi nền bảng dataframe
+# Ghi đè CSS để đổi màu nền bảng
 st.markdown(f"""
     <style>
-    div[data-testid="stDataFrame"] {{
-        background-color: {secondary_bg_color} !important;
+    .stTable {{
+        background-color: {bg} !important;
+        border-radius: 8px;
+        padding: 8px;
     }}
     </style>
 """, unsafe_allow_html=True)
-
 
 st.title('IRAK4 SCREENING')
 st.info('This application is designed to predict potent IRAK4 inhibitors')
