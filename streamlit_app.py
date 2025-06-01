@@ -123,7 +123,7 @@ if st.button("Generate ECFP4 Fingerprints"):
     else:
         st.warning("Please complete Step 3 first.")
 
-# === 5. PAINS FILTER ===
+# === 5. QSAR SCREENING ===
 st.header("Step 5: IRAK4 QSAR Screening")
 
 def run_qsar_prediction():
@@ -158,12 +158,13 @@ def run_qsar_prediction():
         reg_df[reg_df.label == 1], on=['ID', 'standardized']
     )[['ID', 'standardized', 'label_prob', 'predicted_pIC50']]
 
+    # Lưu vào session_state
     st.session_state.result = bin_df
     st.session_state.result_reg = reg_df
     st.session_state.consensus = consensus_df
     st.session_state.qsar_done = True
 
-# === Kiểm tra và hiển thị nút
+# === Kiểm tra trạng thái và nút chạy
 if "df_split" not in st.session_state:
     st.warning("⚠️ Please generate ECFP4 fingerprints in Step 4 first to unlock prediction.")
 else:
@@ -172,26 +173,27 @@ else:
             run_qsar_prediction()
             st.success("✅ Step 5 completed.")
         except Exception as e:
-            st.error(f"Prediction error: {e}")
+            st.error(f"❌ Prediction error: {e}")
 
-# === Nếu đã chạy thành công thì hiển thị kết quả
+# === Nếu đã chạy thì hiển thị kết quả
 if st.session_state.get("qsar_done", False):
+    # --- Binary Results
     st.subheader("🧪 Binary Predicted Actives")
-    df_binary_active = st.session_state.result
-    df_binary_active = df_binary_active[df_binary_active['label'] == 1][['ID', 'standardized', 'label_prob', 'label']]
+    df_binary_active = st.session_state.result.query("label == 1")[['ID', 'standardized', 'label_prob', 'label']]
     gb_bin = GridOptionsBuilder.from_dataframe(df_binary_active)
     gb_bin.configure_default_column(filterable=True, sortable=True)
     grid_options_bin = gb_bin.build()
     AgGrid(df_binary_active, gridOptions=grid_options_bin, height=300, theme='alpine')
 
+    # --- Regression Results
     st.subheader("📈 Regression Predicted Actives")
-    df_reg_active = st.session_state.result_reg
-    df_reg_active = df_reg_active[df_reg_active['label'] == 1][['ID', 'standardized', 'predicted_pIC50', 'label']]
+    df_reg_active = st.session_state.result_reg.query("label == 1")[['ID', 'standardized', 'predicted_pIC50', 'label']]
     gb_reg = GridOptionsBuilder.from_dataframe(df_reg_active)
     gb_reg.configure_default_column(filterable=True, sortable=True)
     grid_options_reg = gb_reg.build()
     AgGrid(df_reg_active, gridOptions=grid_options_reg, height=300, theme='alpine')
 
+    # --- Consensus Results
     st.subheader("📊 Consensus Actives")
     consensus_df = st.session_state.consensus
     gb_consensus = GridOptionsBuilder.from_dataframe(consensus_df)
@@ -199,19 +201,11 @@ if st.session_state.get("qsar_done", False):
     grid_options_consensus = gb_consensus.build()
     AgGrid(consensus_df, gridOptions=grid_options_consensus, height=400, theme='alpine')
 
-    # === Nút lưu Consensus thành CSV ===
+    # --- Nút tải CSV
     csv = consensus_df.to_csv(index=False).encode('utf-8')
     st.download_button(
-    label="📥 Download Consensus CSV",
-    data=csv,
-    file_name='consensus_actives.csv',
-    mime='text/csv'
+        label="📥 Download Consensus CSV",
+        data=csv,
+        file_name='consensus_actives.csv',
+        mime='text/csv'
     )
-    except Exception as e:
-        st.error(f"❌ Prediction error: {e}")
-
-
-
-
-
-
