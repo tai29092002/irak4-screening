@@ -213,8 +213,8 @@ if st.session_state.get("qsar_done", False):
     # Download CSV
     csv = consensus_df.to_csv(index=False).encode('utf-8')
     st.download_button(
-        label="📥 Download Consensus CSV",
+        label="📥 Download Result",
         data=csv,
-        file_name='consensus_actives.csv',
+        file_name='screening_result.csv',
         mime='text/csv'
     )
