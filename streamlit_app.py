@@ -359,17 +359,20 @@ if "consensus" in st.session_state:
             mol_id = row.get('ID')
             smiles = row.get('standardized')
 
-            if st.button("✅ Confirm selection"):
-                st.session_state.selected_mol_id = mol_id
-                st.session_state.selected_smiles = smiles
-                st.session_state.selected_df = pd.DataFrame([row])
-                st.success(f"✅ Molecule '{mol_id}' has been successfully selected and locked.")
-                st.experimental_rerun()
+            with st.expander("🔐 Confirm selection", expanded=True):
+                st.markdown(f"You have selected molecule **{mol_id}**")
+                if st.button("✅ Confirm this molecule"):
+                    st.session_state.selected_mol_id = mol_id
+                    st.session_state.selected_smiles = smiles
+                    st.session_state.selected_df = pd.DataFrame([row])
+                    st.success(f"✅ Molecule '{mol_id}' has been successfully selected and locked.")
+                    st.experimental_rerun()
         else:
             st.info("👉 Please select one row from the table.")
+
     else:
-        st.success(f"✅ Molecule '{st.session_state.selected_mol_id}' has already been selected.")
-        st.info("If you want to choose another molecule, please reset your selection.")
+        st.success(f"✅ Molecule '{st.session_state.selected_mol_id}' has already been selected and locked.")
+        st.info("To select another molecule, reset your selection.")
 else:
     st.warning("⚠️ consensus_df does not exist. Please run previous steps first.")
 
