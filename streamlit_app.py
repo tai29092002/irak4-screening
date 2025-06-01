@@ -15,7 +15,7 @@ from st_flexible_callout_elements import flexible_callout
 
 custom_css = {
     ".ag-root-wrapper": {"border-radius": "8px"},
-    ".ag-header": {"font-size": "17px", "background-color": "#FFDCDC"},
+    ".ag-header": {"font-size": "17px", "background-color": "#B9B28A"},
     ".ag-cell": {"font-size": "15px", "padding": "4px"},
     ".ag-row-hover": {"background-color": "#FCE7C8"},
 }  
