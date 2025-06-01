@@ -180,14 +180,16 @@ if run_button:
 # Hiển thị kết quả nếu đã xong
 if st.session_state.get("qsar_done", False):
     st.subheader("🧪 Binary Predicted Actives")
-    df_binary_active = st.session_state.result.query("label == 1")[['ID', 'standardized', 'label_prob', 'label']]
+    df_binary_active = st.session_state.result
+    df_binary_active = df_binary_active[df_binary_active['label'] == 1][['ID', 'standardized', 'label_prob']]
     gb_bin = GridOptionsBuilder.from_dataframe(df_binary_active)
     gb_bin.configure_default_column(filterable=True, sortable=True)
     grid_options_bin = gb_bin.build()
     AgGrid(df_binary_active, gridOptions=grid_options_bin, height=300, theme='alpine')
 
     st.subheader("📈 Regression Predicted Actives")
-    df_reg_active = st.session_state.result_reg.query("label == 1")[['ID', 'standardized', 'predicted_pIC50', 'label']]
+    df_reg_active = st.session_state.result_reg
+    df_reg_active = df_reg_active[df_reg_active['label'] == 1][['ID', 'standardized', 'predicted_pIC50']]
     gb_reg = GridOptionsBuilder.from_dataframe(df_reg_active)
     gb_reg.configure_default_column(filterable=True, sortable=True)
     grid_options_reg = gb_reg.build()
@@ -200,6 +202,7 @@ if st.session_state.get("qsar_done", False):
     grid_options_consensus = gb_consensus.build()
     AgGrid(consensus_df, gridOptions=grid_options_consensus, height=400, theme='alpine')
 
+    # Nút download
     csv = consensus_df.to_csv(index=False).encode('utf-8')
     st.download_button(
         label="📥 Download Consensus CSV",
