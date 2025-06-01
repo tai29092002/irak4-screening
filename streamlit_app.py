@@ -22,7 +22,7 @@ uploaded_file = st.file_uploader("Upload a CSV file", type=['csv'])
 id_col = st.text_input("ID column (optional)", value="", placeholder="e.g. Molecule_Name")
 smiles_col = st.text_input("SMILES column (required)", value="", placeholder="e.g. SMILES")
 
-if st.button("Create Dataset"):
+if st.button("Create Dataset",type="primary"):
     if uploaded_file is None:
         st.warning("Please upload a file.")
     elif not smiles_col.strip():
@@ -79,7 +79,7 @@ if st.button("Standardize",type="primary"):
 # === 3. PAINS FILTER ===
 st.header("Step 3: PAINS Filter")
 
-if st.button("Run"):
+if st.button("Run",type="primary"):
     if "df_standardized" in st.session_state:
         df = st.session_state.df_standardized.copy()
         params = FilterCatalogParams()
@@ -102,7 +102,7 @@ if st.button("Run"):
 # === 4. ECFP4 FINGERPRINTS ===
 st.header("Step 4: Compute Fingerprints")
 
-if st.button("Generate"):
+if st.button("Generate",type="primary"):
     if "df_select" in st.session_state:
         df = st.session_state.df_select.copy()
 
@@ -168,7 +168,7 @@ def run_qsar_prediction():
     st.session_state.qsar_done = True
 
 # Nút chạy
-if st.button("Run Prediction"):
+if st.button("Run Prediction",type="primary"):
     if "df_split" not in st.session_state:
         st.warning("⚠️ Please complete Step 4 (ECFP4 Fingerprints) first.")
     else:
