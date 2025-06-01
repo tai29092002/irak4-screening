@@ -19,7 +19,7 @@ st.info('This application is designed to predict potent IRAK4 inhibitors')
 
 # === 1. Upload and extract ===
 st.header("Step 1: Upload and extract ID & SMILES")
-uploaded_file = st.file_uploader("Upload a CSV or TXT file", type=['csv', 'txt'])
+uploaded_file = st.file_uploader("Upload a CSV file", type=['csv'])
 id_col = st.text_input("ID column (optional)", value="", placeholder="e.g. Molecule_Name")
 smiles_col = st.text_input("SMILES column (required)", value="", placeholder="e.g. SMILES")
 
