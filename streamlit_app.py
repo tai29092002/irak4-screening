@@ -13,21 +13,18 @@ from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
 import os
 import streamlit as st
 
-# Ghi đè màu nền của bảng thành trắng
+#import streamlit as st
+
 st.markdown("""
     <style>
-    /* Chỉnh bảng Dataframe và Table về nền trắng */
-    .stDataFrame, .stTable {
+    /* Nền bảng bên trong màu trắng, không viền, không bóng */
+    .stDataFrame div[data-testid="stDataFrame"] {
         background-color: white !important;
-        border-radius: 10px;
-        padding: 10px;
     }
 
-    /* Ngoài ra cũng có thể chỉnh phần wrapper để chắc chắn */
-    .element-container:has(.stDataFrame) {
+    /* Nếu dùng st.table */
+    .stTable {
         background-color: white !important;
-        border-radius: 10px;
-        padding: 10px;
     }
     </style>
 """, unsafe_allow_html=True)
