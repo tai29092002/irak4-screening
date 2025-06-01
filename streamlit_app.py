@@ -275,26 +275,29 @@ if st.button("Run Prediction"):
             consensus_df,
             screening_reg[['ID', 'predicted_pIC50']],
             on='ID', how='left'
-        )        
+        )
 
-        # Lưu session nếu cần
+        # Lưu vào session để giữ lại khi reload
         st.session_state.consensus = consensus_df
 
         st.success("✅ Consensus prediction complete.")
-        st.subheader("📊 Consensus Actives")
 
-        # Giao diện có filter và sort như Excel
-        gb = GridOptionsBuilder.from_dataframe(consensus_df)
-        gb.configure_default_column(filterable=True, sortable=True)
-        grid_options = gb.build()
-
-        AgGrid(
-            consensus_df,
-            gridOptions=grid_options,
-            enable_enterprise_modules=False,
-            fit_columns_on_grid_load=True,
-            height=500,
-            theme='alpine'
-        )
     except Exception as e:
         st.error(f"❌ Lỗi khi xử lý dữ liệu consensus: {e}")
+
+# ==== HIỂN THỊ CONSENSUS TABLE RIÊNG BIỆT ====
+if "consensus" in st.session_state:
+    st.subheader("📊 Consensus Actives (Filter + Sort)")
+
+    gb = GridOptionsBuilder.from_dataframe(st.session_state.consensus)
+    gb.configure_default_column(filterable=True, sortable=True)
+    grid_options = gb.build()
+
+    AgGrid(
+        st.session_state.consensus,
+        gridOptions=grid_options,
+        enable_enterprise_modules=False,
+        fit_columns_on_grid_load=True,
+        height=500,
+        theme='alpine'
+    )
