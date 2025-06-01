@@ -14,7 +14,7 @@ import os
 from st_flexible_callout_elements import flexible_callout
 
 custom_css = {
-    ".ag-root-wrapper": {"border-radius": "12px"},
+    ".ag-root-wrapper": {"border-radius": "8px"},
     ".ag-header": {"font-size": "16px", "background-color": "#F7D1BA"},
     ".ag-cell": {"font-size": "14px", "padding": "4px"},
     ".ag-row-hover": {"background-color": "#FCE7C8"},
@@ -25,7 +25,7 @@ flexible_callout(
     message="This application is designed to predict potent IRAK4 inhibitors",
     background_color="#D0F0FF",
     font_color="#003366",
-    font_size=14,
+    font_size=15,
     border_radius=8,
     padding=10,
     margin_bottom=10
