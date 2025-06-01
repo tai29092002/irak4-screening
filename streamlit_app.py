@@ -16,7 +16,7 @@ custom_css = {
     ".ag-root-wrapper": {"border-radius": "12px"},
     ".ag-header": {"font-size": "16px", "background-color": "#F7D1BA"},
     ".ag-cell": {"font-size": "14px", "padding": "4px"},
-    ".ag-row-hover": {"background-color": "#FFE2E2"},
+    ".ag-row-hover": {"background-color": "#FCE7C8"},
 }  
 
 st.title('IRAK4 SCREENING')
