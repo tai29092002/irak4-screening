@@ -187,7 +187,7 @@ def run_qsar_prediction():
     data = st.session_state.df_split.copy()
 
     # === Binary Classification ===
-    with open('model1/rf_binary_813_tuned.pkl', 'rb') as f:
+    with open('model/rf_binary_813_tuned.pkl', 'rb') as f:
         clf = pickle.load(f)
     X_bin = data.drop(['ID', 'standardized'], axis=1)
     prob_bin = clf.predict_proba(X_bin)[:, 1]
@@ -201,7 +201,7 @@ def run_qsar_prediction():
     bin_df['label_prob'] = bin_df['label_prob'].round(4)
 
     # === Regression Prediction ===
-    with open('model1/xgb_regression_764_tuned.pkl', 'rb') as f:
+    with open('model/xgb_regression_764_tuned.pkl', 'rb') as f:
         xgb = pickle.load(f)
     pred_reg = xgb.predict(X_bin)
 
