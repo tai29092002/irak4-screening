@@ -40,12 +40,25 @@ uploaded_file = st.file_uploader("Upload a CSV file", type=['csv'])
 id_col = st.text_input("ID column (optional)", value="", placeholder="e.g. Molecule_Name")
 smiles_col = st.text_input("SMILES column (required)", value="", placeholder="e.g. SMILES")
 
+st.markdown("**Or manually input SMILES below (one per line, optional IDs separated by comma):**")
+manual_smiles_input = st.text_area("Manual SMILES input", height=150, placeholder="CCO\nmolecule1,CCN\nmolecule2,CCC")
+
 if st.button("Create Dataset", type="primary"):
-    if uploaded_file is None:
-        flexible_callout(
-            message="Please upload file.",
-            **CALLOUT_CONFIG  # <-- unpack dict
-        )
+    if manual_smiles_input.strip():  # Nếu có nhập tay thì ưu tiên xử lý
+        data = []
+        for line in manual_smiles_input.strip().splitlines():
+            parts = [x.strip() for x in line.split(',')]
+            if len(parts) == 2:
+                data.append({'ID': parts[0], 'SMILES': parts[1]})
+            elif len(parts) == 1:
+                data.append({'ID': f"molecule{len(data)+1}", 'SMILES': parts[0]})
+            else:
+                st.warning(f"Line skipped due to format: {line}")
+        df_new = pd.DataFrame(data)
+        st.session_state.df_new = df_new
+        flexible_callout(message="🎯 Step 1 completed (manual input).", **CALLOUT_CONFIG)
+    elif uploaded_file is None:
+        flexible_callout(message="Please upload file or input SMILES manually.", **CALLOUT_CONFIG)
     elif not smiles_col.strip():
         st.warning("Please enter SMILES column name.")
     else:
@@ -56,15 +69,14 @@ if st.button("Create Dataset", type="primary"):
             ids = df[id_col] if id_col and id_col in df.columns else [f"molecule{i+1}" for i in range(len(df))]
             df_new = pd.DataFrame({'ID': ids, 'SMILES': df[smiles_col]})
             st.session_state.df_new = df_new
-            flexible_callout(
-                message="🎯 Step 1 completed.",
-                **CALLOUT_CONFIG  # <-- unpack dict
-            )
-            # AgGrid hiển thị df_new
-            gb = GridOptionsBuilder.from_dataframe(df_new)
-            gb.configure_default_column(filterable=True, sortable=True)
-            grid_options = gb.build()
-            AgGrid(df_new, gridOptions=grid_options, height=300, theme="alpine", custom_css=custom_css)
+            flexible_callout(message="🎯 Step 1 completed (from file).", **CALLOUT_CONFIG)
+
+    if "df_new" in st.session_state:
+        gb = GridOptionsBuilder.from_dataframe(st.session_state.df_new)
+        gb.configure_default_column(filterable=True, sortable=True)
+        grid_options = gb.build()
+        AgGrid(st.session_state.df_new, gridOptions=grid_options, height=300, theme="alpine", custom_css=custom_css)
+
 
 # === 2. STANDARDIZATION ===
 st.header("Step 2: Standardize")
