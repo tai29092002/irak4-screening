@@ -34,7 +34,7 @@ flexible_callout(
     **CALLOUT_CONFIG  # <-- unpack dict
 )
 # === 1. UPLOAD ===
-st.header("Step 1: INPUT DATA")
+st.header("Step 1: Input")
 
 # Inputs
 uploaded_file = st.file_uploader("Upload a CSV file (optional)", type=['csv'])
@@ -105,9 +105,9 @@ if st.button("Process", type="primary"):
         AgGrid(df_new, gridOptions=gb.build(), height=350, theme='alpine', custom_css=custom_css)
 
 # === 3. PAINS FILTER ===
-st.header("Step 3: PAINS Filter")
+st.header("Step 2: PAINS Filter")
 
-if st.button("Run", type="primary"):
+if st.button("Process", type="primary"):
     if "df_standardized" in st.session_state:
         df = st.session_state.df_standardized.copy()
         params = FilterCatalogParams()
@@ -140,131 +140,115 @@ if st.button("Run", type="primary"):
             **CALLOUT_CONFIG  # <-- unpack dict
         )
 
-# === 4. ECFP4 FINGERPRINTS ===
-st.header("Step 4: Compute Fingerprints")
+# === Step 4+5: Fingerprints & QSAR Screening ===
+st.header("Step 3: Screening")
 
-if st.button("Generate",type="primary"):
-    if "df_select" in st.session_state:
-        df = st.session_state.df_select.copy()
+def compute_fp_and_qsar():
+    # 1) Compute ECFP4 fingerprints
+    df = st.session_state.df_select.copy()
+    def smiles_to_fp(smi):
+        mol = Chem.MolFromSmiles(smi)
+        if mol:
+            fp = AllChem.GetMorganFingerprintAsBitVect(mol, 2, nBits=2048)
+            arr = np.zeros((2048,), dtype=int)
+            AllChem.DataStructs.ConvertToNumpyArray(fp, arr)
+            return arr
+        return np.full(2048, np.nan)
+    fps = df['standardized'].apply(smiles_to_fp)
+    df_fp = pd.DataFrame(fps.tolist(), columns=[f"bit_{i}" for i in range(2048)])
+    df_split = pd.concat(
+        [
+            df[['ID', 'standardized']].reset_index(drop=True),
+            df_fp.reset_index(drop=True)
+        ], axis=1
+    )
+    st.session_state.df_split = df_split
 
-        def smiles_to_fp(smi):
-            mol = Chem.MolFromSmiles(smi)
-            if mol:
-                fp = AllChem.GetMorganFingerprintAsBitVect(mol, 2, nBits=2048)
-                arr = np.zeros((2048,), dtype=int)
-                AllChem.DataStructs.ConvertToNumpyArray(fp, arr)
-                return arr
-            return np.full(2048, np.nan)
-
-        fps = df['standardized'].apply(smiles_to_fp)
-        df_fp = pd.DataFrame(fps.tolist(), columns=[f"bit_{i}" for i in range(2048)])
-        df_out = pd.concat([df[['ID', 'standardized']].reset_index(drop=True), df_fp.reset_index(drop=True)], axis=1)
-        st.session_state.df_split = df_out
-        flexible_callout(
-            message="🎯 Step 4 completed.",
-            **CALLOUT_CONFIG  # <-- unpack dict
-        )
-    else:
-        flexible_callout(
-            message="Please complete Step 3 first.",
-            **CALLOUT_CONFIG  # <-- unpack dict
-        )
-
-# Step 5: IRAK4 QSAR Screening
-st.header("Step 5: IRAK4 QSAR Screening")
-
-def run_qsar_prediction():
-    data = st.session_state.df_split.copy()
-    X = data.drop(['ID', 'standardized'], axis=1)
-
-    # === Binary Classification ===
+    # 2) Binary Classification
+    X = df_split.drop(['ID', 'standardized'], axis=1)
     with open('model1/rf_binary_813_tuned.pkl', 'rb') as f:
         clf = pickle.load(f)
     prob = clf.predict_proba(X)[:, 1]
     bin_df = pd.DataFrame({
-        'ID': data['ID'],
-        'standardized': data['standardized'],
+        'ID': df_split['ID'],
+        'standardized': df_split['standardized'],
         'label_prob': np.round(prob, 4)
     })
     bin_df['active'] = np.where(bin_df['label_prob'] > 0.5, 'Strong', 'Weak')
+    st.session_state.result = bin_df
 
-    # === Regression Prediction ===
+    # 3) Regression Prediction → IC50 (nM)
     with open('model1/xgb_regression_764_tuned.pkl', 'rb') as f:
         xgb = pickle.load(f)
     pIC50 = np.round(xgb.predict(X), 4)
-    ic50_nm = np.round((10 ** (-pIC50) * 1e9), 2)
+    ic50 = np.round((10 ** (-pIC50) * 1e9), 2)
     reg_df = pd.DataFrame({
-        'ID': data['ID'],
-        'standardized': data['standardized'],
-        'IC50 (nM)': ic50_nm
+        'ID': df_split['ID'],
+        'standardized': df_split['standardized'],
+        'IC50 (nM)': ic50
     })
     reg_df['active'] = np.where(reg_df['IC50 (nM)'] <= 8, 'Strong', 'Weak')
+    st.session_state.result_reg = reg_df
 
-    # === Consensus Actives ===
+    # 4) Consensus: both Strong
     consensus_df = (
-        bin_df.loc[bin_df['active'] == 'Strong', ['ID', 'standardized', 'label_prob', 'active']]
+        bin_df.loc[bin_df['active']=='Strong', ['ID','standardized','label_prob','active']]
         .merge(
-            reg_df.loc[reg_df['active'] == 'Strong', ['ID', 'standardized', 'IC50 (nM)']],
-            on=['ID', 'standardized']
+            reg_df.loc[reg_df['active']=='Strong', ['ID','standardized','IC50 (nM)']],
+            on=['ID','standardized']
         )
     )
-
-    # Lưu kết quả vào session_state
-    st.session_state.result     = bin_df
-    st.session_state.result_reg = reg_df
-    st.session_state.consensus  = consensus_df
+    st.session_state.consensus = consensus_df
     st.session_state.qsar_done  = True
 
-# nút luôn hiện
-if st.button("Run Prediction", key="run_qsar", type="primary"):
-    if "df_split" not in st.session_state:
+# single button for both steps
+if st.button("Generate & Predict", type="primary"):
+    if 'df_select' not in st.session_state:
         flexible_callout(
-            message="Please complete Step 4 first.",
+            message="Please complete Step 3 first.",
             **CALLOUT_CONFIG
         )
     else:
         try:
-            run_qsar_prediction()
+            compute_fp_and_qsar()
             flexible_callout(
-                message="🎯 Step 5 completed.",
+                message="🎯 Steps 4+5 completed.",
                 **CALLOUT_CONFIG
             )
         except Exception as e:
             flexible_callout(
-                message=f"❌ Prediction error: {e}",
+                message=f"❌ Processing error: {e}",
                 **CALLOUT_CONFIG
             )
 
-# Thông báo nếu đã chạy
-if st.session_state.get("qsar_done", False):
-    st.success("✅ Step 5 has been run — results below.")
+# show results if done
+if st.session_state.get('qsar_done', False):
+    st.success("✅ Fingerprints & QSAR done — see results below.")
 
-# === Hiển thị kết quả ===
-if st.session_state.get("qsar_done", False):
-    # Binary Predicted Actives
-    st.subheader("🧪 Binary Predicted Actives (All Compounds)")
-    df_bin = st.session_state.result[['ID', 'standardized', 'active', 'label_prob']].reset_index(drop=True)
-    gb1 = GridOptionsBuilder.from_dataframe(df_bin)
-    gb1.configure_default_column(filterable=True, sortable=True)
-    gb1.configure_column('label_prob', type=['numericColumn'], valueFormatter='x.toFixed(4)')
-    AgGrid(df_bin, gridOptions=gb1.build(), height=300, theme='alpine', custom_css=custom_css)
+    # Binary
+    st.subheader("🧪 Binary Predicted Actives (All)")
+    dfb = st.session_state.result[['ID','standardized','active','label_prob']].reset_index(drop=True)
+    gb = GridOptionsBuilder.from_dataframe(dfb)
+    gb.configure_default_column(filterable=True, sortable=True)
+    gb.configure_column('label_prob', type=['numericColumn'], valueFormatter='x.toFixed(4)')
+    AgGrid(dfb, gridOptions=gb.build(), height=250, theme='alpine', custom_css=custom_css)
 
-    # Regression Predicted Actives
-    st.subheader("📈 Regression Predicted Actives (All Compounds)")
-    df_reg = st.session_state.result_reg[['ID', 'standardized', 'active', 'IC50 (nM)']].reset_index(drop=True)
-    gb2 = GridOptionsBuilder.from_dataframe(df_reg)
-    gb2.configure_default_column(filterable=True, sortable=True)
-    gb2.configure_column('IC50 (nM)', type=['numericColumn'], valueFormatter='x.toFixed(2)')
-    AgGrid(df_reg, gridOptions=gb2.build(), height=300, theme='alpine', custom_css=custom_css)
+    # Regression
+    st.subheader("📈 Regression Predicted Actives (All)")
+    dfr = st.session_state.result_reg[['ID','standardized','active','IC50 (nM)']].reset_index(drop=True)
+    gb = GridOptionsBuilder.from_dataframe(dfr)
+    gb.configure_default_column(filterable=True, sortable=True)
+    gb.configure_column('IC50 (nM)', type=['numericColumn'], valueFormatter='x.toFixed(2)')
+    AgGrid(dfr, gridOptions=gb.build(), height=250, theme='alpine', custom_css=custom_css)
 
-    # Consensus Actives
+    # Consensus
     st.subheader("📊 Consensus Actives")
-    df_cons = st.session_state.consensus[['ID', 'standardized', 'label_prob', 'IC50 (nM)', 'active']].reset_index(drop=True)
-    gb3 = GridOptionsBuilder.from_dataframe(df_cons)
-    gb3.configure_default_column(filterable=True, sortable=True)
-    gb3.configure_column('label_prob', type=['numericColumn'], valueFormatter='x.toFixed(4)')
-    gb3.configure_column('IC50 (nM)', type=['numericColumn'], valueFormatter='x.toFixed(2)')
-    AgGrid(df_cons, gridOptions=gb3.build(), height=400, theme='alpine', custom_css=custom_css)
+    dfc = st.session_state.consensus[['ID','standardized','label_prob','IC50 (nM)','active']].reset_index(drop=True)
+    gb = GridOptionsBuilder.from_dataframe(dfc)
+    gb.configure_default_column(filterable=True, sortable=True)
+    gb.configure_column('label_prob', type=['numericColumn'], valueFormatter='x.toFixed(4)')
+    gb.configure_column('IC50 (nM)', type=['numericColumn'], valueFormatter='x.toFixed(2)')
+    AgGrid(dfc, gridOptions=gb.build(), height=350, theme='alpine', custom_css=custom_css)
     
     # Download CSV
     csv = consensus_df.to_csv(index=False).encode('utf-8')
