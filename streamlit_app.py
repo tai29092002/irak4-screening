@@ -243,7 +243,7 @@ if st.session_state.get('qsar_done', False):
 
     # Consensus
     st.subheader("📊 Consensus Actives")
-    dfc = st.session_state.consensus[['ID','standardized','label_prob','IC50 (nM)','active']].reset_index(drop=True)
+    dfc = st.session_state.consensus[['ID','standardized','IC50 (nM)','active']].reset_index(drop=True)
     gb = GridOptionsBuilder.from_dataframe(dfc)
     gb.configure_default_column(filterable=True, sortable=True)
     gb.configure_column('label_prob', type=['numericColumn'], valueFormatter='x.toFixed(4)')
@@ -251,7 +251,7 @@ if st.session_state.get('qsar_done', False):
     AgGrid(dfc, gridOptions=gb.build(), height=350, theme='alpine', custom_css=custom_css)
 
     # Download results CSV (even if empty)
-    df_download = st.session_state.get('consensus', pd.DataFrame(columns=['ID','standardized','label_prob','IC50 (nM)','active']))
+    df_download = st.session_state.get('consensus', pd.DataFrame(columns=['ID','standardized','IC50 (nM)','active']))
     csv = df_download.to_csv(index=False).encode('utf-8')
     st.download_button(
         label="📥 Download Result",
