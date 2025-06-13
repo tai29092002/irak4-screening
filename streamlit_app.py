@@ -159,7 +159,7 @@ def compute_fp_and_qsar():
         'standardized': df_split['standardized'],
         'label_prob': np.round(prob, 4)
     })
-    bin_df['active'] = np.where(bin_df['label_prob'] > 0.5, 'Strong', 'Weak')
+    bin_df['Active'] = np.where(bin_df['label_prob'] > 0.5, 'Strong', 'Weak')
     st.session_state.result = bin_df
 
     # 3) Regression Prediction → IC50 (nM)
@@ -172,14 +172,14 @@ def compute_fp_and_qsar():
         'standardized': df_split['standardized'],
         'IC50 (nM)': ic50
     })
-    reg_df['active'] = np.where(reg_df['IC50 (nM)'] <= 8, 'Strong', 'Weak')
+    reg_df['Active'] = np.where(reg_df['IC50 (nM)'] <= 8, 'Strong', 'Weak')
     st.session_state.result_reg = reg_df
 
     # 4) Consensus: both Strong
     consensus_df = (
-        bin_df.loc[bin_df['active']=='Strong', ['ID','standardized','active']]
+        bin_df.loc[bin_df['Active']=='Strong', ['ID','standardized','Active']]
         .merge(
-            reg_df.loc[reg_df['active']=='Strong', ['ID','standardized','IC50 (nM)']],
+            reg_df.loc[reg_df['Active']=='Strong', ['ID','standardized','IC50 (nM)']],
             on=['ID','standardized']
         )
     )
@@ -214,7 +214,7 @@ if st.session_state.get('qsar_done', False):
     st.subheader("🧪 Binary Prediction")
     dfb = (
         st.session_state.result
-        [['ID', 'standardized', 'active', 'label_prob']]
+        [['ID', 'standardized', 'Active', 'label_prob']]
         .reset_index(drop=True)
     )
     gb_bin = GridOptionsBuilder.from_dataframe(dfb)
@@ -238,7 +238,7 @@ if st.session_state.get('qsar_done', False):
     st.subheader("📈 Regression Prediction)")
     dfr = (
         st.session_state.result_reg
-        [['ID', 'standardized', 'active', 'IC50 (nM)']]
+        [['ID', 'standardized', 'Active', 'IC50 (nM)']]
         .reset_index(drop=True)
     )
     gb_reg = GridOptionsBuilder.from_dataframe(dfr)
@@ -262,7 +262,7 @@ if st.session_state.get('qsar_done', False):
     st.subheader("📊 Consensus Actives")
     dfc = (
         st.session_state.consensus
-        [['ID', 'standardized', 'active', 'IC50 (nM)']]
+        [['ID', 'standardized', 'Active', 'IC50 (nM)']]
         .reset_index(drop=True)
     )
     gb_cons = GridOptionsBuilder.from_dataframe(dfc)
