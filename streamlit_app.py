@@ -34,7 +34,7 @@ flexible_callout(
     **CALLOUT_CONFIG  # <-- unpack dict
 )
 # === 1. UPLOAD ===
-st.header("Step 1+2: Create and Standardize Dataset")
+st.header("Step 1: INPUT DATA")
 
 # Inputs
 uploaded_file = st.file_uploader("Upload a CSV file (optional)", type=['csv'])
@@ -70,7 +70,7 @@ def standardize_smiles(batch):
     return result
 
 # Single button for both steps
-if st.button("Process and Standardize", type="primary"):
+if st.button("Process", type="primary"):
     # Step 1: build df_new
     data = []
     if manual_smiles_input.strip():
@@ -98,7 +98,7 @@ if st.button("Process and Standardize", type="primary"):
         df_new = pd.DataFrame(data)
         df_new['standardized'] = standardize_smiles(df_new['SMILES'])
         st.session_state.df_standardized = df_new
-        flexible_callout(message="🎯 Steps 1+2 completed.", **CALLOUT_CONFIG)
+        flexible_callout(message="🎯 Steps 1 completed.", **CALLOUT_CONFIG)
         # Display
         gb = GridOptionsBuilder.from_dataframe(df_new)
         gb.configure_default_column(filterable=True, sortable=True)
