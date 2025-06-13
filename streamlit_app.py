@@ -101,7 +101,7 @@ if st.button("Process", key="process_step1", type="primary"):
         AgGrid(df_new, gridOptions=gb.build(), height=250, theme='alpine', custom_css=custom_css)
 
 # Step 2: PAINS Filter
-if not st.session_state.get("qsar_done", False):
+if not st.session_state.get("qsar_done", True):
     st.header("Step 2: PAINS Filter")
 
     if st.button("Screening", key="process_step2", type="primary"):
