@@ -193,13 +193,6 @@ if st.button("Generate",type="primary"):
         )
 
 # === 5. QSAR SCREENING ===
-import pickle
-import numpy as np
-import pandas as pd
-import streamlit as st
-from st_aggrid import AgGrid, GridOptionsBuilder
-
-# === Step 5: IRAK4 QSAR Screening ===
 st.header("Step 5: IRAK4 QSAR Screening")
 
 def run_qsar_prediction():
@@ -218,6 +211,7 @@ def run_qsar_prediction():
         'label': (prob_bin >= 0.5).astype(int)
     })
     bin_df['label_prob'] = bin_df['label_prob'].round(4)
+    # Thêm cột active: strong nếu >0.5, ngược lại weak
     bin_df['active'] = np.where(bin_df['label_prob'] > 0.5, 'strong', 'weak')
 
     # === Regression Prediction ===
@@ -237,15 +231,15 @@ def run_qsar_prediction():
     consensus_df = bin_df[bin_df.label == 1].merge(
         reg_df[reg_df.label == 1],
         on=['ID', 'standardized']
-    )[['ID','standardized','label_prob','predicted_pIC50','active']]
+    )[['ID', 'standardized', 'label_prob', 'predicted_pIC50', 'active']]
 
-    # Lưu vào session_state
+    # Lưu kết quả vào session_state
     st.session_state.result     = bin_df
     st.session_state.result_reg = reg_df
     st.session_state.consensus  = consensus_df
     st.session_state.qsar_done  = True
 
-# Nếu chưa chạy thì show nút, chạy xong thì ẩn nút và show thông báo
+# === Nút Run Prediction: chỉ hiện nếu chưa chạy ===
 if not st.session_state.get("qsar_done", False):
     if st.button("Run Prediction", key="run_prediction_btn", type="primary"):
         if "df_split" not in st.session_state:
@@ -268,45 +262,46 @@ if not st.session_state.get("qsar_done", False):
 else:
     st.success("✅ You’ve already run Step 5 — no need to click again.")
 
-# Hiển thị kết quả nếu đã chạy xong
+# === Hiển thị kết quả nếu đã chạy xong ===
 if st.session_state.get("qsar_done", False):
-    # === Binary (tất cả compounds) ===
+    # --- Binary Predicted Actives (All Compounds) ---
     st.subheader("🧪 Binary Predicted Actives (All Compounds)")
-    df_binary_all = st.session_state.result[['ID','standardized','label_prob','active']]
+    df_binary_all = st.session_state.result[['ID', 'standardized', 'label_prob', 'active']]
     gb_bin = GridOptionsBuilder.from_dataframe(df_binary_all)
     gb_bin.configure_default_column(filterable=True, sortable=True)
     gb_bin.configure_column("label_prob", type=["numericColumn"], valueFormatter="x.toFixed(4)")
-    AgGrid(df_binary_all, gridOptions=gb_bin.build(), height=300, theme='alpine', custom_css=custom_css)
+    AgGrid(
+        df_binary_all,
+        gridOptions=gb_bin.build(),
+        height=300,
+        theme='alpine',
+        custom_css=custom_css
+    )
 
-    # === Regression Predicted Actives ===
-    st.subheader("📈 Regression Predicted Actives")
-    df_reg_active = st.session_state.result_reg
-    df_reg_active = df_reg_active[df_reg_active['label'] == 1][['ID','standardized','predicted_pIC50']]
-    gb_reg = GridOptionsBuilder.from_dataframe(df_reg_active)
+    # --- Regression Predicted Actives (All Compounds) ---
+    st.subheader("📈 Regression Predicted Actives (All Compounds)")
+    df_reg_all = st.session_state.result_reg[['ID', 'standardized', 'predicted_pIC50']]
+    gb_reg = GridOptionsBuilder.from_dataframe(df_reg_all)
     gb_reg.configure_default_column(filterable=True, sortable=True)
     gb_reg.configure_column("predicted_pIC50", type=["numericColumn"], valueFormatter="x.toFixed(4)")
-    AgGrid(df_reg_active, gridOptions=gb_reg.build(), height=300, theme='alpine', custom_css=custom_css)
+    AgGrid(
+        df_reg_all,
+        gridOptions=gb_reg.build(),
+        height=300,
+        theme='alpine',
+        custom_css=custom_css
+    )
 
-    # === Consensus Actives ===
+    # --- Consensus Actives ---
     st.subheader("📊 Consensus Actives")
-    consensus_df = st.session_state.consensus
+    consensus_df = st.session_state.consensus[['ID', 'standardized', 'label_prob', 'predicted_pIC50', 'active']]
     gb_cons = GridOptionsBuilder.from_dataframe(consensus_df)
     gb_cons.configure_default_column(filterable=True, sortable=True)
     gb_cons.configure_column("label_prob",      type=["numericColumn"], valueFormatter="x.toFixed(4)")
     gb_cons.configure_column("predicted_pIC50", type=["numericColumn"], valueFormatter="x.toFixed(4)")
-    AgGrid(consensus_df, gridOptions=gb_cons.build(), height=400, theme='alpine', custom_css=custom_css)
-
-    # === Consensus Actives ===
-    st.subheader("📊 Consensus Actives")
-    consensus_df = st.session_state.consensus.copy()
-    gb_consensus = GridOptionsBuilder.from_dataframe(consensus_df)
-    gb_consensus.configure_default_column(filterable=True, sortable=True)
-    gb_consensus.configure_column("label_prob",      type=["numericColumn"], valueFormatter="x.toFixed(4)")
-    gb_consensus.configure_column("predicted_pIC50", type=["numericColumn"], valueFormatter="x.toFixed(4)")
-    grid_options_consensus = gb_consensus.build()
     AgGrid(
         consensus_df,
-        gridOptions=grid_options_consensus,
+        gridOptions=gb_cons.build(),
         height=400,
         theme='alpine',
         custom_css=custom_css
