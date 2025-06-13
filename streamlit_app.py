@@ -177,7 +177,7 @@ def compute_fp_and_qsar():
 
     # 4) Consensus: both Strong
     consensus_df = (
-        bin_df.loc[bin_df['active']=='Strong', ['ID','standardized','label_prob','active']]
+        bin_df.loc[bin_df['active']=='Strong', ['ID','standardized','active']]
         .merge(
             reg_df.loc[reg_df['active']=='Strong', ['ID','standardized','IC50 (nM)']],
             on=['ID','standardized']
