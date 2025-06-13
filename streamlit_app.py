@@ -260,19 +260,22 @@ if st.button("Run Prediction", type="primary"):
             )
 
 # Hiển thị kết quả nếu có
+# Hiển thị kết quả nếu có
 if st.session_state.get("qsar_done", False):
-    # === Binary ===
-    st.subheader("🧪 Binary Predicted Actives")
-    df_binary_active = st.session_state.result.copy()
-    # chỉ hiển thị những hàng đã qua sàng (label == 1)
-    df_binary_active = df_binary_active[df_binary_active['label'] == 1][
-        ['ID', 'standardized', 'label_prob', 'active']
-    ]
-    gb_bin = GridOptionsBuilder.from_dataframe(df_binary_active)
+    # === Binary (show all, both weak & strong) ===
+    st.subheader("🧪 Binary Predicted Actives (All Compounds)")
+    df_binary_all = st.session_state.result.copy()[['ID', 'standardized', 'label_prob', 'active']]
+    gb_bin = GridOptionsBuilder.from_dataframe(df_binary_all)
     gb_bin.configure_default_column(filterable=True, sortable=True)
     gb_bin.configure_column("label_prob", type=["numericColumn"], valueFormatter="x.toFixed(4)")
     grid_options_bin = gb_bin.build()
-    AgGrid(df_binary_active, gridOptions=grid_options_bin, height=300, theme='alpine', custom_css=custom_css)
+    AgGrid(
+        df_binary_all,
+        gridOptions=grid_options_bin,
+        height=300,
+        theme='alpine',
+        custom_css=custom_css
+    )
 
     # === Regression ===
     st.subheader("📈 Regression Predicted Actives")
@@ -284,7 +287,13 @@ if st.session_state.get("qsar_done", False):
     gb_reg.configure_default_column(filterable=True, sortable=True)
     gb_reg.configure_column("predicted_pIC50", type=["numericColumn"], valueFormatter="x.toFixed(4)")
     grid_options_reg = gb_reg.build()
-    AgGrid(df_reg_active, gridOptions=grid_options_reg, height=300, theme='alpine', custom_css=custom_css)
+    AgGrid(
+        df_reg_active,
+        gridOptions=grid_options_reg,
+        height=300,
+        theme='alpine',
+        custom_css=custom_css
+    )
 
     # === Consensus ===
     st.subheader("📊 Consensus Actives")
@@ -294,8 +303,13 @@ if st.session_state.get("qsar_done", False):
     gb_consensus.configure_column("label_prob", type=["numericColumn"], valueFormatter="x.toFixed(4)")
     gb_consensus.configure_column("predicted_pIC50", type=["numericColumn"], valueFormatter="x.toFixed(4)")
     grid_options_consensus = gb_consensus.build()
-    AgGrid(consensus_df, gridOptions=grid_options_consensus, height=400, theme='alpine', custom_css=custom_css)
-
+    AgGrid(
+        consensus_df,
+        gridOptions=grid_options_consensus,
+        height=400,
+        theme='alpine',
+        custom_css=custom_css
+    )
 
     # Download CSV
     csv = consensus_df.to_csv(index=False).encode('utf-8')
