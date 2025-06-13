@@ -212,9 +212,11 @@ if st.session_state.get('qsar_done', False):
 
     # --- Binary Predicted Actives (All) ---
     st.subheader("🧪 Binary Predicted Actives (All)")
-    dfb = (st.session_state.result
-           [['ID', 'standardized', 'active', 'label_prob']]
-           .reset_index(drop=True))
+    dfb = (
+        st.session_state.result
+        [['ID', 'standardized', 'active', 'label_prob']]
+        .reset_index(drop=True)
+    )
     gb_bin = GridOptionsBuilder.from_dataframe(dfb)
     gb_bin.configure_default_column(filterable=True, sortable=True)
     gb_bin.configure_column(
@@ -222,15 +224,23 @@ if st.session_state.get('qsar_done', False):
         type=['numericColumn'],
         valueFormatter='x.toFixed(4)'
     )
-    # Tắt cột số dòng
     gb_bin.configure_grid_options(suppressRowNumbers=True)
-    AgGrid(dfb, gridOptions=gb_bin.build(), height=350,fit_columns_on_grid_load=True, theme='alpine', custom_css=custom_css)
+    AgGrid(
+        dfb,
+        gridOptions=gb_bin.build(),
+        height=350,
+        fit_columns_on_grid_load=True,
+        theme='alpine',
+        custom_css=custom_css
+    )
 
     # --- Regression Predicted Actives (All) ---
     st.subheader("📈 Regression Predicted Actives (All)")
-    dfr = (st.session_state.result_reg
-           [['ID', 'standardized', 'active', 'IC50 (nM)']]
-           .reset_index(drop=True))
+    dfr = (
+        st.session_state.result_reg
+        [['ID', 'standardized', 'active', 'IC50 (nM)']]
+        .reset_index(drop=True)
+    )
     gb_reg = GridOptionsBuilder.from_dataframe(dfr)
     gb_reg.configure_default_column(filterable=True, sortable=True)
     gb_reg.configure_column(
@@ -239,15 +249,15 @@ if st.session_state.get('qsar_done', False):
         valueFormatter='x.toFixed(2)'
     )
     gb_reg.configure_grid_options(suppressRowNumbers=True)
-    AgGrid(dfr, gridOptions=gb_reg.build(), height=250,fit_columns_on_grid_load=True, theme='alpine', custom_css=custom_css)
+    AgGrid(
+        dfr,
+        gridOptions=gb_reg.build(),
+        height=250,
+        fit_columns_on_grid_load=True,
+        theme='alpine',
+        custom_css=custom_css
+    )
 
-    # Consensus
-    st.subheader("📊 Consensus Actives")
-    dfc = st.session_state.consensus[['ID','standardized','IC50 (nM)','active']].reset_index(drop=True)
-    gb = GridOptionsBuilder.from_dataframe(dfc)
-    gb.configure_default_column(filterable=True, sortable=True)
-    gb.configure_column('IC50 (nM)', type=['numericColumn'], valueFormatter='x.toFixed(2)')
-    AgGrid(dfc, gridOptions=gb.build(), height=250,fit_columns_on_grid_load=True, theme='alpine', custom_css=custom_css)
 
     # Download results CSV (even if empty)
     df_download = st.session_state.get('consensus', pd.DataFrame(columns=['ID','standardized','IC50 (nM)','active']))
