@@ -192,7 +192,7 @@ if st.button("Generate",type="primary"):
             **CALLOUT_CONFIG  # <-- unpack dict
         )
 
-#STEP5
+# Step 5: IRAK4 QSAR Screening
 st.header("Step 5: IRAK4 QSAR Screening")
 
 def run_qsar_prediction():
@@ -211,29 +211,32 @@ def run_qsar_prediction():
         'label': (prob_bin >= 0.5).astype(int)
     })
     bin_df['label_prob'] = bin_df['label_prob'].round(4)
-    # Add active column: strong if > 0.5 else weak
-    bin_df['active'] = np.where(bin_df['label_prob'] > 0.5, 'strong', 'weak')
+    # Add active column: Strong if > 0.5 else Weak
+    bin_df['active'] = np.where(bin_df['label_prob'] > 0.5, 'Strong', 'Weak')
 
     # Regression Prediction
     with open('model1/xgb_regression_764_tuned.pkl', 'rb') as f:
         xgb = pickle.load(f)
-    pred_reg = xgb.predict(X_bin)
+    pred_pIC50 = xgb.predict(X_bin)
 
     reg_df = pd.DataFrame({
         'ID': data['ID'],
         'standardized': data['standardized'],
-        'predicted_pIC50': pred_reg,
-        'label': (pred_reg >= -np.log10(8e-9)).astype(int)
+        'predicted_pIC50': pred_pIC50,
+        'label': (pred_pIC50 >= -np.log10(8e-9)).astype(int)
     })
     reg_df['predicted_pIC50'] = reg_df['predicted_pIC50'].round(4)
-    # Add active column for regression: strong if label == 1 else weak
-    reg_df['active'] = np.where(reg_df['label'] == 1, 'strong', 'weak')
+    # Add active column for regression: Strong if label == 1 else Weak
+    reg_df['active'] = np.where(reg_df['label'] == 1, 'Strong', 'Weak')
+    # Convert pIC50 back to IC50 in nM
+    # IC50 (M) = 10^(-pIC50); convert to nM => *1e9
+    reg_df['Predicted IC50 (nM)'] = (10 ** (-reg_df['predicted_pIC50']) * 1e9).round(2)
 
-    # Consensus Actives: merge only selected columns to avoid duplicate 'active'
+    # Consensus Actives: merge only selected columns to avoid duplicate columns
     consensus_df = (
         bin_df.loc[bin_df['label'] == 1, ['ID', 'standardized', 'label_prob', 'active']]
         .merge(
-            reg_df.loc[reg_df['label'] == 1, ['ID', 'standardized', 'predicted_pIC50']],
+            reg_df.loc[reg_df['label'] == 1, ['ID', 'standardized', 'Predicted IC50 (nM)']],
             on=['ID', 'standardized']
         )
     )
@@ -285,10 +288,10 @@ if st.session_state.get('qsar_done', False):
 
     # Regression Predicted Actives (All Compounds)
     st.subheader('📈 Regression Predicted Actives (All Compounds)')
-    df_reg_all = st.session_state.result_reg[['ID', 'standardized', 'active', 'predicted_pIC50']]
+    df_reg_all = st.session_state.result_reg[['ID', 'standardized', 'active', 'Predicted IC50 (nM)']]
     gb_reg = GridOptionsBuilder.from_dataframe(df_reg_all)
     gb_reg.configure_default_column(filterable=True, sortable=True)
-    gb_reg.configure_column('predicted_pIC50', type=['numericColumn'], valueFormatter='x.toFixed(4)')
+    gb_reg.configure_column('Predicted IC50 (nM)', type=['numericColumn'], valueFormatter='x.toFixed(2)')
     AgGrid(
         df_reg_all,
         gridOptions=gb_reg.build(),
@@ -299,11 +302,11 @@ if st.session_state.get('qsar_done', False):
 
     # Consensus Actives
     st.subheader('📊 Consensus Actives')
-    consensus_df = st.session_state.consensus[['ID', 'standardized', 'label_prob', 'predicted_pIC50', 'active']]
+    consensus_df = st.session_state.consensus[['ID', 'standardized', 'label_prob', 'Predicted IC50 (nM)', 'active']]
     gb_cons = GridOptionsBuilder.from_dataframe(consensus_df)
     gb_cons.configure_default_column(filterable=True, sortable=True)
     gb_cons.configure_column('label_prob', type=['numericColumn'], valueFormatter='x.toFixed(4)')
-    gb_cons.configure_column('predicted_pIC50', type=['numericColumn'], valueFormatter='x.toFixed(4)')
+    gb_cons.configure_column('Predicted IC50 (nM)', type=['numericColumn'], valueFormatter='x.toFixed(2)')
     AgGrid(
         consensus_df,
         gridOptions=gb_cons.build(),
