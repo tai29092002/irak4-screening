@@ -193,6 +193,7 @@ if st.button("Generate",type="primary"):
         )
 
 # Step 5: IRAK4 QSAR Screening
+# Step 5: IRAK4 QSAR Screening
 st.header("Step 5: IRAK4 QSAR Screening")
 
 def run_qsar_prediction():
@@ -211,7 +212,7 @@ def run_qsar_prediction():
         'label': (prob_bin >= 0.5).astype(int)
     })
     bin_df['label_prob'] = bin_df['label_prob'].round(4)
-    # Add active column: Strong if > 0.5 else Weak
+    # Add active column: Strong if >0.5, else Weak
     bin_df['active'] = np.where(bin_df['label_prob'] > 0.5, 'Strong', 'Weak')
 
     # Regression Prediction
@@ -222,29 +223,26 @@ def run_qsar_prediction():
     reg_df = pd.DataFrame({
         'ID': data['ID'],
         'standardized': data['standardized'],
-        'predicted_pIC50': pred_pIC50,
-        'label': (pred_pIC50 >= -np.log10(8e-9)).astype(int)
+        'predicted_pIC50': np.round(pred_pIC50, 4)
     })
-    reg_df['predicted_pIC50'] = reg_df['predicted_pIC50'].round(4)
-    # Add active column for regression: Strong if label == 1 else Weak
-    reg_df['active'] = np.where(reg_df['label'] == 1, 'Strong', 'Weak')
-    # Compute IC50 (nM) from pIC50: IC50 (M) = 10^(-pIC50), then convert to nM
+    # Compute IC50 (M) then convert to nM and round
     reg_df['IC50 (nM)'] = (10 ** (-reg_df['predicted_pIC50']) * 1e9).round(2)
-    # Drop pIC50 column
-    reg_df = reg_df.drop(columns=['predicted_pIC50', 'label'])
+    # Add active based on pIC50 threshold for 8 nM: pIC50 >= -log10(8e-9)
+    threshold = -np.log10(8e-9)
+    reg_df['active'] = np.where(reg_df['predicted_pIC50'] >= threshold, 'Strong', 'Weak')
 
-    # Consensus Actives: only include compounds active in both
+    # Consensus Actives: compounds strong in both binary and regression
     consensus_df = (
-        bin_df.loc[bin_df['label'] == 1, ['ID', 'standardized', 'label_prob', 'active']]
+        bin_df.loc[bin_df['active'] == 'Strong', ['ID', 'standardized', 'label_prob', 'active']]
         .merge(
             reg_df.loc[reg_df['active'] == 'Strong', ['ID', 'standardized', 'IC50 (nM)']],
             on=['ID', 'standardized']
         )
     )
 
-    # Save to session_state
+    # Save results
     st.session_state.result     = bin_df
-    st.session_state.result_reg = reg_df
+    st.session_state.result_reg = reg_df[['ID','standardized','active','IC50 (nM)']]
     st.session_state.consensus  = consensus_df
     st.session_state.qsar_done  = True
 
@@ -269,52 +267,34 @@ if not st.session_state.get('qsar_done', False):
                     **CALLOUT_CONFIG
                 )
 else:
-    st.success('✅ You\'ve already run Step 5 — no need to click again.')
+    st.success("✅ You've already run Step 5 — no need to click again.")
 
-# Display results if done
+# Display results
 if st.session_state.get('qsar_done', False):
     # Binary Predicted Actives (All Compounds)
     st.subheader('🧪 Binary Predicted Actives (All Compounds)')
-    df_binary_all = st.session_state.result[['ID', 'standardized', 'active', 'label_prob']]
-    gb_bin = GridOptionsBuilder.from_dataframe(df_binary_all)
+    df_binary = st.session_state.result[['ID','standardized','active','label_prob']]
+    gb_bin = GridOptionsBuilder.from_dataframe(df_binary)
     gb_bin.configure_default_column(filterable=True, sortable=True)
     gb_bin.configure_column('label_prob', type=['numericColumn'], valueFormatter='x.toFixed(4)')
-    AgGrid(
-        df_binary_all,
-        gridOptions=gb_bin.build(),
-        height=300,
-        theme='alpine',
-        custom_css=custom_css
-    )
+    AgGrid(df_binary, gridOptions=gb_bin.build(), height=300, theme='alpine', custom_css=custom_css)
 
     # Regression Predicted Actives (All Compounds)
     st.subheader('📈 Regression Predicted Actives (All Compounds)')
-    df_reg_all = st.session_state.result_reg[['ID', 'standardized', 'active', 'IC50 (nM)']]
-    gb_reg = GridOptionsBuilder.from_dataframe(df_reg_all)
+    df_reg = st.session_state.result_reg.copy()
+    gb_reg = GridOptionsBuilder.from_dataframe(df_reg)
     gb_reg.configure_default_column(filterable=True, sortable=True)
     gb_reg.configure_column('IC50 (nM)', type=['numericColumn'], valueFormatter='x.toFixed(2)')
-    AgGrid(
-        df_reg_all,
-        gridOptions=gb_reg.build(),
-        height=300,
-        theme='alpine',
-        custom_css=custom_css
-    )
+    AgGrid(df_reg, gridOptions=gb_reg.build(), height=300, theme='alpine', custom_css=custom_css)
 
     # Consensus Actives
     st.subheader('📊 Consensus Actives')
-    consensus_df = st.session_state.consensus[['ID', 'standardized', 'label_prob', 'IC50 (nM)', 'active']]
-    gb_cons = GridOptionsBuilder.from_dataframe(consensus_df)
+    df_cons = st.session_state.consensus[['ID','standardized','label_prob','IC50 (nM)','active']]
+    gb_cons = GridOptionsBuilder.from_dataframe(df_cons)
     gb_cons.configure_default_column(filterable=True, sortable=True)
     gb_cons.configure_column('label_prob', type=['numericColumn'], valueFormatter='x.toFixed(4)')
     gb_cons.configure_column('IC50 (nM)', type=['numericColumn'], valueFormatter='x.toFixed(2)')
-    AgGrid(
-        consensus_df,
-        gridOptions=gb_cons.build(),
-        height=400,
-        theme='alpine',
-        custom_css=custom_css
-    )
+    AgGrid(df_cons, gridOptions=gb_cons.build(), height=400, theme='alpine', custom_css=custom_css)
     
     # Download CSV
     csv = consensus_df.to_csv(index=False).encode('utf-8')
