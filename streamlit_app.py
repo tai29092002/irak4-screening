@@ -192,14 +192,7 @@ if st.button("Generate",type="primary"):
             **CALLOUT_CONFIG  # <-- unpack dict
         )
 
-# === 5. QSAR SCREENING ===
-import pickle
-import numpy as np
-import pandas as pd
-import streamlit as st
-from st_aggrid import AgGrid, GridOptionsBuilder
-
-# Step 5: IRAK4 QSAR Screening
+#STEP5
 st.header("Step 5: IRAK4 QSAR Screening")
 
 def run_qsar_prediction():
@@ -236,11 +229,13 @@ def run_qsar_prediction():
     # Add active column for regression: strong if label == 1 else weak
     reg_df['active'] = np.where(reg_df['label'] == 1, 'strong', 'weak')
 
-    # Consensus Actives: merge only relevant columns to avoid duplicate 'active'
-    consensus_df = bin_df.loc[bin_df['label'] == 1, ['ID', 'standardized', 'label_prob', 'active']]
-    consensus_df = consensus_df.merge(
-        reg_df.loc[reg_df['label'] == 1, ['ID', 'standardized', 'predicted_pIC50']],
-        on=['ID', 'standardized']
+    # Consensus Actives: merge only selected columns to avoid duplicate 'active'
+    consensus_df = (
+        bin_df.loc[bin_df['label'] == 1, ['ID', 'standardized', 'label_prob', 'active']]
+        .merge(
+            reg_df.loc[reg_df['label'] == 1, ['ID', 'standardized', 'predicted_pIC50']],
+            on=['ID', 'standardized']
+        )
     )
 
     # Save to session_state
@@ -279,9 +274,7 @@ if st.session_state.get('qsar_done', False):
     df_binary_all = st.session_state.result[['ID', 'standardized', 'active', 'label_prob']]
     gb_bin = GridOptionsBuilder.from_dataframe(df_binary_all)
     gb_bin.configure_default_column(filterable=True, sortable=True)
-    gb_bin.configure_column(
-        'label_prob', type=['numericColumn'], valueFormatter='x.toFixed(4)'
-    )
+    gb_bin.configure_column('label_prob', type=['numericColumn'], valueFormatter='x.toFixed(4)')
     AgGrid(
         df_binary_all,
         gridOptions=gb_bin.build(),
@@ -295,9 +288,7 @@ if st.session_state.get('qsar_done', False):
     df_reg_all = st.session_state.result_reg[['ID', 'standardized', 'active', 'predicted_pIC50']]
     gb_reg = GridOptionsBuilder.from_dataframe(df_reg_all)
     gb_reg.configure_default_column(filterable=True, sortable=True)
-    gb_reg.configure_column(
-        'predicted_pIC50', type=['numericColumn'], valueFormatter='x.toFixed(4)'
-    )
+    gb_reg.configure_column('predicted_pIC50', type=['numericColumn'], valueFormatter='x.toFixed(4)')
     AgGrid(
         df_reg_all,
         gridOptions=gb_reg.build(),
@@ -311,12 +302,8 @@ if st.session_state.get('qsar_done', False):
     consensus_df = st.session_state.consensus[['ID', 'standardized', 'label_prob', 'predicted_pIC50', 'active']]
     gb_cons = GridOptionsBuilder.from_dataframe(consensus_df)
     gb_cons.configure_default_column(filterable=True, sortable=True)
-    gb_cons.configure_column(
-        'label_prob', type=['numericColumn'], valueFormatter='x.toFixed(4)'
-    )
-    gb_cons.configure_column(
-        'predicted_pIC50', type=['numericColumn'], valueFormatter='x.toFixed(4)'
-    )
+    gb_cons.configure_column('label_prob', type=['numericColumn'], valueFormatter='x.toFixed(4)')
+    gb_cons.configure_column('predicted_pIC50', type=['numericColumn'], valueFormatter='x.toFixed(4)')
     AgGrid(
         consensus_df,
         gridOptions=gb_cons.build(),
@@ -324,6 +311,7 @@ if st.session_state.get('qsar_done', False):
         theme='alpine',
         custom_css=custom_css
     )
+    
     # Download CSV
     csv = consensus_df.to_csv(index=False).encode('utf-8')
     st.download_button(
