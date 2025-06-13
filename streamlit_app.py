@@ -246,7 +246,6 @@ if st.session_state.get('qsar_done', False):
     dfc = st.session_state.consensus[['ID','standardized','IC50 (nM)','active']].reset_index(drop=True)
     gb = GridOptionsBuilder.from_dataframe(dfc)
     gb.configure_default_column(filterable=True, sortable=True)
-    gb.configure_column('label_prob', type=['numericColumn'], valueFormatter='x.toFixed(4)')
     gb.configure_column('IC50 (nM)', type=['numericColumn'], valueFormatter='x.toFixed(2)')
     AgGrid(dfc, gridOptions=gb.build(), height=250,fit_columns_on_grid_load=True, theme='alpine', custom_css=custom_css)
 
