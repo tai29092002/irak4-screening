@@ -171,12 +171,10 @@ if st.button("Generate",type="primary"):
         )
 
 # Step 5: IRAK4 QSAR Screening
-# Step 5: IRAK4 QSAR Screening
 st.header("Step 5: IRAK4 QSAR Screening")
 
 def run_qsar_prediction():
     data = st.session_state.df_split.copy()
-    # Prepare features
     X = data.drop(['ID', 'standardized'], axis=1)
 
     # === Binary Classification ===
@@ -193,57 +191,55 @@ def run_qsar_prediction():
     # === Regression Prediction ===
     with open('model1/xgb_regression_764_tuned.pkl', 'rb') as f:
         xgb = pickle.load(f)
-    pIC50 = xgb.predict(X)
-    pIC50 = np.round(pIC50, 4)
-    # Compute IC50 in nM: IC50(M) = 10^(-pIC50), then *1e9
+    pIC50 = np.round(xgb.predict(X), 4)
     ic50_nm = np.round((10 ** (-pIC50) * 1e9), 2)
     reg_df = pd.DataFrame({
         'ID': data['ID'],
         'standardized': data['standardized'],
         'IC50 (nM)': ic50_nm
     })
-    # Active if IC50 <= 8 nM
     reg_df['active'] = np.where(reg_df['IC50 (nM)'] <= 8, 'Strong', 'Weak')
 
     # === Consensus Actives ===
     consensus_df = (
-        bin_df.loc[bin_df['active'] == 'Strong', ['ID', 'standardized', 'label_prob', 'active']]
+        bin_df[bin_df['active'] == 'Strong'][['ID', 'standardized', 'label_prob', 'active']]
         .merge(
-            reg_df.loc[reg_df['active'] == 'Strong', ['ID', 'standardized', 'IC50 (nM)']],
+            reg_df[reg_df['active'] == 'Strong'][['ID', 'standardized', 'IC50 (nM)']],
             on=['ID', 'standardized']
         )
     )
 
     # Save to session state
-    st.session_state.result = bin_df
+    st.session_state.result     = bin_df
     st.session_state.result_reg = reg_df
-    st.session_state.consensus = consensus_df
-    st.session_state.qsar_done = True
+    st.session_state.consensus  = consensus_df
+    st.session_state.qsar_done  = True
 
-# Run prediction button (only once)
-if not st.session_state.get('qsar_done', False):
-    if st.button('Run Prediction', key='run_qsar', type='primary'):
-        if 'df_split' not in st.session_state:
+# Always show the Run Prediction button
+if st.button('Run Prediction', key='run_qsar', type='primary'):
+    if 'df_split' not in st.session_state:
+        flexible_callout(
+            message='Please complete Step 4 first.',
+            **CALLOUT_CONFIG
+        )
+    else:
+        try:
+            run_qsar_prediction()
             flexible_callout(
-                message='Please complete Step 4 first.',
+                message='🎯 Step 5 completed.',
                 **CALLOUT_CONFIG
             )
-        else:
-            try:
-                run_qsar_prediction()
-                flexible_callout(
-                    message='🎯 Step 5 completed.',
-                    **CALLOUT_CONFIG
-                )
-            except Exception as e:
-                flexible_callout(
-                    message=f'❌ Prediction error: {e}',
-                    **CALLOUT_CONFIG
-                )
-else:
-    st.success("✅ Step 5 has been run — see results below.")
+        except Exception as e:
+            flexible_callout(
+                message=f'❌ Prediction error: {e}',
+                **CALLOUT_CONFIG
+            )
 
-# Display results if done
+# Optionally show success message
+if st.session_state.get('qsar_done', False):
+    st.success("✅ Step 5 has been run — results updated below.")
+
+# Display results
 if st.session_state.get('qsar_done', False):
     # Binary Predicted Actives
     st.subheader('🧪 Binary Predicted Actives (All Compounds)')
