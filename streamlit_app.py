@@ -197,7 +197,7 @@ if st.button("Predict", key="run_fp_qsar", type="primary"):
         try:
             compute_fp_and_qsar()
             flexible_callout(
-                message="🎯 Steps 4+5 completed.",
+                message="🎯 Steps 3 completed.",
                 **CALLOUT_CONFIG
             )
         except Exception as e:
