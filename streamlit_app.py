@@ -44,11 +44,11 @@ st.markdown("**Or manually input SMILES below:** one per line or with optional I
 manual_smiles_input = st.text_area("Manual SMILES input", height=150, placeholder="CCO\nmol1,CCN\nmol2,CCC")
 
 def standardize_smiles(batch):
-    uc          = rdMolStandardize.Uncharger()
-    md          = rdMolStandardize.MetalDisconnector()
-    te          = rdMolStandardize.TautomerEnumerator()
-    reionizer   = rdMolStandardize.Reionizer()
-    result      = []
+    uc        = rdMolStandardize.Uncharger()
+    md        = rdMolStandardize.MetalDisconnector()
+    te        = rdMolStandardize.TautomerEnumerator()
+    reionizer = rdMolStandardize.Reionizer()
+    result    = []
     for smi in batch:
         try:
             mol = Chem.MolFromSmiles(smi)
@@ -96,9 +96,19 @@ if st.button("Process", key="process_step1", type="primary"):
         st.session_state.df_standardized = df_new
         flexible_callout(message="🎯 Step 1 completed.", **CALLOUT_CONFIG)
 
-        gb = GridOptionsBuilder.from_dataframe(df_new)
-        gb.configure_default_column(filterable=True, sortable=True)
-        AgGrid(df_new, gridOptions=gb.build(), height=250, theme='alpine', custom_css=custom_css)
+# **Always** show the standardized table if it exists**
+if 'df_standardized' in st.session_state:
+    st.subheader("Standardized Molecules")
+    df_std = st.session_state.df_standardized.reset_index(drop=True)
+    gb = GridOptionsBuilder.from_dataframe(df_std)
+    gb.configure_default_column(filterable=True, sortable=True)
+    AgGrid(
+        df_std,
+        gridOptions=gb.build(),
+        height=250,
+        theme='alpine',
+        custom_css=custom_css
+    )
 
 # Step 2: PAINS Filter
 st.header("Step 2: PAINS Filter")
@@ -122,7 +132,7 @@ def run_pains_filter():
     passed = len(raw_pains)
     failed = total - passed
     if failed == 0:
-        st.success(f"No PAINS found. All {passed} compounds passed the filter.")
+        st.success(f"No PAINS found. All compounds passed the filter.")
     else:
         st.success(f"{passed} compounds passed (no PAINS), {failed} flagged by PAINS.")
 
@@ -266,7 +276,7 @@ if st.session_state.get('qsar_done', False):
     )
 
     # --- Regression Prediction ---
-    st.subheader("📈 Regression Prediction)")
+    st.subheader("📈 Regression Prediction")
     dfr = (
         st.session_state.result_reg
         [['ID', 'standardized', 'Active', 'IC50 (nM)']]
