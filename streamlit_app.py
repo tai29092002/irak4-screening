@@ -224,7 +224,7 @@ if st.session_state.get('qsar_done', False):
     )
     # Tắt cột số dòng
     gb_bin.configure_grid_options(suppressRowNumbers=True)
-    AgGrid(dfb, gridOptions=gb.build(), height=350, theme='alpine', custom_css=custom_css)
+    AgGrid(dfb, gridOptions=gb_bin.build(), height=350,fit_columns_on_grid_load=True, theme='alpine', custom_css=custom_css)
 
     # --- Regression Predicted Actives (All) ---
     st.subheader("📈 Regression Predicted Actives (All)")
@@ -239,7 +239,7 @@ if st.session_state.get('qsar_done', False):
         valueFormatter='x.toFixed(2)'
     )
     gb_reg.configure_grid_options(suppressRowNumbers=True)
-    AgGrid(dfr, gridOptions=gb.build(), height=350, theme='alpine', custom_css=custom_css)
+    AgGrid(dfr, gridOptions=gb_reg.build(), height=250,fit_columns_on_grid_load=True, theme='alpine', custom_css=custom_css)
 
     # Consensus
     st.subheader("📊 Consensus Actives")
