@@ -210,21 +210,36 @@ if st.button("Generate & Predict", key="run_fp_qsar", type="primary"):
 if st.session_state.get('qsar_done', False):
     st.success("✅ Fingerprints & QSAR done — see results below.")
 
-    # Binary
+    # --- Binary Predicted Actives (All) ---
     st.subheader("🧪 Binary Predicted Actives (All)")
-    dfb = st.session_state.result[['ID','standardized','active','label_prob']].reset_index(drop=True)
-    gb = GridOptionsBuilder.from_dataframe(dfb)
-    gb.configure_default_column(filterable=True, sortable=True)
-    gb.configure_column('label_prob', type=['numericColumn'], valueFormatter='x.toFixed(4)')
-    AgGrid(dfb, gridOptions=gb.build(), height=250, theme='alpine', custom_css=custom_css)
+    dfb = (st.session_state.result
+           [['ID', 'standardized', 'active', 'label_prob']]
+           .reset_index(drop=True))
+    gb_bin = GridOptionsBuilder.from_dataframe(dfb)
+    gb_bin.configure_default_column(filterable=True, sortable=True)
+    gb_bin.configure_column(
+        'label_prob',
+        type=['numericColumn'],
+        valueFormatter='x.toFixed(4)'
+    )
+    # Tắt cột số dòng
+    gb_bin.configure_grid_options(suppressRowNumbers=True)
+    AgGrid(dfc, gridOptions=gb.build(), height=350, theme='alpine', custom_css=custom_css)
 
-    # Regression
+    # --- Regression Predicted Actives (All) ---
     st.subheader("📈 Regression Predicted Actives (All)")
-    dfr = st.session_state.result_reg[['ID','standardized','active','IC50 (nM)']].reset_index(drop=True)
-    gb = GridOptionsBuilder.from_dataframe(dfr)
-    gb.configure_default_column(filterable=True, sortable=True)
-    gb.configure_column('IC50 (nM)', type=['numericColumn'], valueFormatter='x.toFixed(2)')
-    AgGrid(dfr, gridOptions=gb.build(), height=250, theme='alpine', custom_css=custom_css)
+    dfr = (st.session_state.result_reg
+           [['ID', 'standardized', 'active', 'IC50 (nM)']]
+           .reset_index(drop=True))
+    gb_reg = GridOptionsBuilder.from_dataframe(dfr)
+    gb_reg.configure_default_column(filterable=True, sortable=True)
+    gb_reg.configure_column(
+        'IC50 (nM)',
+        type=['numericColumn'],
+        valueFormatter='x.toFixed(2)'
+    )
+    gb_reg.configure_grid_options(suppressRowNumbers=True)
+    AgGrid(dfc, gridOptions=gb.build(), height=350, theme='alpine', custom_css=custom_css)
 
     # Consensus
     st.subheader("📊 Consensus Actives")
