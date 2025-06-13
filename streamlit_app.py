@@ -101,49 +101,62 @@ if st.button("Process", key="process_step1", type="primary"):
         AgGrid(df_new, gridOptions=gb.build(), height=250, theme='alpine', custom_css=custom_css)
 
 # Step 2: PAINS Filter
-if not st.session_state.get("qsar_done", True):
-    st.header("Step 2: PAINS Filter")
+st.header("Step 2: PAINS Filter")
 
+# 1) Đưa phần lọc PAINS vào hàm riêng
+def run_pains_filter():
+    df = st.session_state.df_standardized.copy()
+    total = len(df)
+    params = FilterCatalogParams()
+    params.AddCatalog(FilterCatalogParams.FilterCatalogs.PAINS)
+    catalog = FilterCatalog(params)
+
+    clean = []
+    for _, row in df.iterrows():
+        mol = Chem.MolFromSmiles(row['standardized'])
+        if mol and not catalog.GetFirstMatch(mol):
+            clean.append(row)
+    raw_pains = pd.DataFrame(clean).reset_index(drop=True)
+    st.session_state.df_select = raw_pains
+
+    passed = len(raw_pains)
+    failed = total - passed
+    if failed == 0:
+        st.success(f"No PAINS found. All {passed} compounds passed the filter.")
+    else:
+        st.success(f"{passed} compounds passed (no PAINS), {failed} flagged by PAINS.")
+
+# 2) Nút chỉ hiện khi chưa chạy QSAR
+if not st.session_state.get("qsar_done", False):
     if st.button("Screening", key="process_step2", type="primary"):
-        if 'df_standardized' not in st.session_state:
-            flexible_callout(message="Please complete Step 1 first.", **CALLOUT_CONFIG)
-        else:
-            df = st.session_state.df_standardized.copy()
-            total = len(df)
-
-            # build PAINS catalog
-            params  = FilterCatalogParams()
-            params.AddCatalog(FilterCatalogParams.FilterCatalogs.PAINS)
-            catalog = FilterCatalog(params)
-
-            # filter
-            clean = []
-            for _, row in df.iterrows():
-                mol = Chem.MolFromSmiles(row['standardized'])
-                if mol and not catalog.GetFirstMatch(mol):
-                    clean.append(row)
-
-            raw_pains = pd.DataFrame(clean)
-            st.session_state.df_select = raw_pains
-
-            # report counts
-            passed = len(raw_pains)
-            failed = total - passed
-            if failed == 0:
-                st.success(f"No PAINS found. All {passed} compounds passed the filter.")
-            else:
-                st.success(f"{passed} compounds passed (no PAINS), {failed} flagged by PAINS.")
-
-            # show table
-            gb = GridOptionsBuilder.from_dataframe(raw_pains)
-            gb.configure_default_column(filterable=True, sortable=True)
-            AgGrid(
-                raw_pains,
-                gridOptions=gb.build(),
-                height=250,
-                theme="alpine",
-                custom_css=custom_css
+        if "df_standardized" not in st.session_state:
+            flexible_callout(
+                message="Please complete Step 1 first.",
+                **CALLOUT_CONFIG
             )
+        else:
+            try:
+                run_pains_filter()
+            except Exception as e:
+                flexible_callout(
+                    message=f"❌ PAINS filter error: {e}",
+                    **CALLOUT_CONFIG
+                )
+
+# 3) Bảng kết quả luôn hiện nếu đã có df_select
+if "df_select" in st.session_state:
+    st.subheader("PAINS Filter Results")
+    raw_pains = st.session_state.df_select
+    gb = GridOptionsBuilder.from_dataframe(raw_pains)
+    gb.configure_default_column(filterable=True, sortable=True)
+    gb.configure_grid_options(suppressRowNumbers=True)
+    AgGrid(
+        raw_pains,
+        gridOptions=gb.build(),
+        height=250,
+        theme="alpine",
+        custom_css=custom_css
+    )
         
 # === Step 3: Fingerprints & QSAR Prediction ===
 st.header("Step 3: QSAR Prediction")
