@@ -39,7 +39,7 @@ st.header("Step 1: Input Data")
 
 uploaded_file      = st.file_uploader("Upload a CSV file (optional)", type=['csv'])
 id_col             = st.text_input("ID column (optional)", value="", placeholder="e.g. Molecule_Name")
-smiles_col         = st.text_input("SMILES column (required if CSV)", value="", placeholder="e.g. SMILES")
+smiles_col         = st.text_input("SMILES column (required)", value="", placeholder="e.g. SMILES")
 st.markdown("**Or manually input SMILES below:** one per line or with optional ID prefix separated by comma")
 manual_smiles_input = st.text_area("Manual SMILES input", height=150, placeholder="CCO\nmol1,CCN\nmol2,CCC")
 
@@ -98,7 +98,7 @@ if st.button("Process", key="process_step1", type="primary"):
 
 # **Always** show the standardized table if it exists**
 if 'df_standardized' in st.session_state:
-    st.subheader("Standardized Molecules")
+    st.subheader("Input Data")
     df_std = st.session_state.df_standardized.reset_index(drop=True)
     gb = GridOptionsBuilder.from_dataframe(df_std)
     gb.configure_default_column(filterable=True, sortable=True)
@@ -112,8 +112,6 @@ if 'df_standardized' in st.session_state:
 
 # Step 2: PAINS Filter
 st.header("Step 2: PAINS Filter")
-
-# 1) Đưa phần lọc PAINS vào hàm riêng
 def run_pains_filter():
     df = st.session_state.df_standardized.copy()
     total = len(df)
@@ -136,24 +134,21 @@ def run_pains_filter():
     else:
         st.success(f"{passed} compounds passed (no PAINS), {failed} flagged by PAINS.")
 
-# 2) Nút chỉ hiện khi chưa chạy QSAR
-if not st.session_state.get("qsar_done", False):
-    if st.button("Screening", key="process_step2", type="primary"):
-        if "df_standardized" not in st.session_state:
+if st.button("Screening", key="process_step2", type="primary"):
+    if "df_standardized" not in st.session_state:
+        flexible_callout(
+            message="Please complete Step 1 first.",
+            **CALLOUT_CONFIG
+        )
+    else:
+        try:
+            run_pains_filter()
+        except Exception as e:
             flexible_callout(
-                message="Please complete Step 1 first.",
+                message=f"❌ PAINS filter error: {e}",
                 **CALLOUT_CONFIG
             )
-        else:
-            try:
-                run_pains_filter()
-            except Exception as e:
-                flexible_callout(
-                    message=f"❌ PAINS filter error: {e}",
-                    **CALLOUT_CONFIG
-                )
 
-# 3) Bảng kết quả luôn hiện nếu đã có df_select
 if "df_select" in st.session_state:
     st.subheader("PAINS Filter Results")
     raw_pains = st.session_state.df_select
