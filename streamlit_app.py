@@ -211,6 +211,186 @@ def run_qsar_prediction():
         'label': (prob_bin >= 0.5).astype(int)
     })
     bin_df['label_prob'] = bin_df['label_prob'].round(4)
+    bin_df['active'] = np.where(bin_df['label_prob'] > 0.5, 'strong', 'weak')
+
+    # === Regression Prediction ===
+    with open('model1/xgb_regression_764_tuned.pkl', 'rb') as f:
+        xgb = pickle.load(f)
+    pred_reg = xgb.predict(X_bin)
+
+    reg_df = pd.DataFrame({
+        'ID': data['ID'],
+        'standardized': data['standardized'],
+        'predicted_pIC50': pred_reg,
+        'label': (pred_reg >= -np.log10(8e-9)).astype(int)
+    })
+    reg_df['predicted_pIC50'] = reg_df['predicted_pIC50'].round(4)
+
+    # === Consensus Actives ===
+    consensus_df = bin_df[bin_df.label == 1].merge(
+        reg_df[reg_df.label == 1],
+        on=['ID', 'standardized']
+    )[['ID','standardized','label_prob','predicted_pIC50','active']]
+
+    # Lưu vào session_state
+    st.session_state.result     = bin_df
+    st.session_state.result_reg = reg_df
+    st.session_state.consensus  = consensus_df
+    st.session_state.qsar_done  = True
+
+# Nếu chưa chạy thì show nút, chạy xong thì ẩn nút và show thông báo
+if not st.session_state.get("qsar_done", False):
+    if st.button("Run Prediction", key="run_prediction_btn", type="primary"):
+        if "df_split" not in st.session_state:
+            flexible_callout(
+                message="Please complete Step 4 first.",
+                **CALLOUT_CONFIG
+            )
+        else:
+            try:
+                run_qsar_prediction()
+                flexible_callout(
+                    message="🎯 Step 5 completed.",
+                    **CALLOUT_CONFIG
+                )
+            except Exception as e:
+                flexible_callout(
+                    message=f"❌ Prediction error: {e}",
+                    **CALLOUT_CONFIG
+                )
+else:
+    st.success("✅ You’ve already run Step 5 — no need to click again.")
+
+# Hiển thị kết quả nếu đã chạy xong
+if st.session_state.get("qsar_done", False):
+    # === Binary (tất cả compounds) ===
+    st.subheader("🧪 Binary Predicted Actives (All Compounds)")
+    df_binary_all = st.session_state.result[['ID','standardized','label_prob','active']]
+    gb_bin = GridOptionsBuilder.from_dataframe(df_binary_all)
+    gb_bin.configure_default_column(filterable=True, sortable=True)
+    gb_bin.configure_column("label_prob", type=["numericColumn"], valueFormatter="x.toFixed(4)")
+    AgGrid(df_binary_all, gridOptions=gb_bin.build(), height=300, theme='alpine', custom_css=custom_css)
+
+    # === Regression Predicted Actives ===
+    st.subheader("📈 Regression Predicted Actives")
+    df_reg_active = st.session_state.result_reg
+    df_reg_active = df_reg_active[df_reg_active['label'] == 1][['ID','standardized','predicted_pIC50']]
+    gb_reg = GridOptionsBuilder.from_dataframe(df_reg_active)
+    gb_reg.configure_default_column(filterable=True, sortable=True)
+    gb_reg.configure_column("predicted_pIC50", type=["numericColumn"], valueFormatter="x.toFixed(4)")
+    AgGrid(df_reg_active, gridOptions=gb_reg.build(), height=300, theme='alpine', custom_css=custom_css)
+
+    # === Consensus Actives ===
+    st.subheader("📊 Consensus Actives")
+    consensus_df = st.session_state.consensus
+    gb_cons = GridOptionsBuilder.from_dataframe(consensus_df)
+    gb_cons.configure_default_column(filterable=True, sortable=True)
+    gb_cons.configure_column("label_prob",      type=["numericColumn"], valueFormatter="x.toFixed(4)")
+    gb_cons.configure_column("predicted_pIC50", type=["numericColumn"], valueFormatter="x.toFixed(4)")
+    AgGrid(consensus_df, gridOptions=gb_cons.build(), height=400, theme='alpine', custom_css=custom_css)
+Giải thích bổ sung
+
+Toàn bộ phần hiển thị nút “Run Prediction” được bao trong if not st.session_state.get("qsar_done", False): — nghĩa là chỉ xuất hiện khi chưa chạy xong.
+
+Ngay sau khi chạy xong, ta set st.session_state.qsar_done = True, nút sẽ tự ẩn và thay bằng thông báo success.
+
+Các bảng kết quả (Binary, Regression, Consensus) vẫn hiển thị bình thường.
+
+Với cách này, người dùng sẽ “bấm chạy” đúng một lần duy nhất rồi không thể click lại.
+
+
+
+
+
+
+Bạn đã nói:
+sửa thêm bảng regression nêu hết kết quả luôn không lọc nữa
+
+
+ChatGPT đã nói:
+
+Đã suy nghĩ trong 5 giây
+Thay đổi phần hiển thị bảng Regression sao cho không còn lọc label == 1 nữa, tức là show tất cả kết quả:
+
+diff
+Sao chép
+Chỉnh sửa
+     # === Regression Predicted Actives (“bảng r”) ===
+     st.subheader("📈 Regression Predicted Actives")
+-    df_reg_active = st.session_state.result_reg.copy()
+-    df_reg_active = df_reg_active[df_reg_active['label'] == 1][
+-        ['ID', 'standardized', 'predicted_pIC50']
+-    ]
++    # show all regression results, không lọc nữa
++    df_reg_all = st.session_state.result_reg[['ID', 'standardized', 'predicted_pIC50']]
+     gb_reg = GridOptionsBuilder.from_dataframe(
+-        df_reg_active
++        df_reg_all
+     )
+     gb_reg.configure_default_column(filterable=True, sortable=True)
+     gb_reg.configure_column("predicted_pIC50", type=["numericColumn"], valueFormatter="x.toFixed(4)")
+-    grid_options_reg = gb_reg.build()
+-    AgGrid(
+-        df_reg_active,
+-        gridOptions=grid_options_reg,
++    grid_options_reg = gb_reg.build()
++    AgGrid(
++        df_reg_all,
++        gridOptions=grid_options_reg,
+         height=300,
+         theme='alpine',
+         custom_css=custom_css
+     )
+
+
+
+
+
+Bạn đã nói:
+cho tôi code hoàn thiện
+
+
+ChatGPT đã nói:
+
+Đã suy nghĩ trong vài giây
+Dưới đây là bản hoàn chỉnh của Step 5, bao gồm:
+
+Chỉ cho phép bấm “Run Prediction” 1 lần (ẩn nút sau khi chạy).
+
+Bảng Binary hiển thị cả “weak” và “strong”.
+
+Bảng Regression hiển thị toàn bộ kết quả (không lọc).
+
+Bảng Consensus như cũ.
+
+python
+Sao chép
+Chỉnh sửa
+import pickle
+import numpy as np
+import pandas as pd
+import streamlit as st
+from st_aggrid import AgGrid, GridOptionsBuilder
+
+# === Step 5: IRAK4 QSAR Screening ===
+st.header("Step 5: IRAK4 QSAR Screening")
+
+def run_qsar_prediction():
+    data = st.session_state.df_split.copy()
+
+    # === Binary Classification ===
+    with open('model1/rf_binary_813_tuned.pkl', 'rb') as f:
+        clf = pickle.load(f)
+    X_bin = data.drop(['ID', 'standardized'], axis=1)
+    prob_bin = clf.predict_proba(X_bin)[:, 1]
+
+    bin_df = pd.DataFrame({
+        'ID': data['ID'],
+        'standardized': data['standardized'],
+        'label_prob': prob_bin,
+        'label': (prob_bin >= 0.5).astype(int)
+    })
+    bin_df['label_prob'] = bin_df['label_prob'].round(4)
     # Thêm cột active: strong nếu >0.5, ngược lại weak
     bin_df['active'] = np.where(bin_df['label_prob'] > 0.5, 'strong', 'weak')
 
