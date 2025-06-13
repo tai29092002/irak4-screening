@@ -127,8 +127,8 @@ if st.button("Process", key="process_step2", type="primary"):
         gb.configure_default_column(filterable=True, sortable=True)
         AgGrid(raw_pains, gridOptions=gb.build(), height=300, theme="alpine", custom_css=custom_css)
         
-# === Step 4+5: Fingerprints & QSAR Screening ===
-st.header("Step 4+5: Compute Fingerprints and Run QSAR Screening")
+# === Step 3: Fingerprints & QSAR Screening ===
+st.header("Step 3: QSAR Screening")
 
 def compute_fp_and_qsar():
     # 1) Compute ECFP4 fingerprints
@@ -187,7 +187,7 @@ def compute_fp_and_qsar():
     st.session_state.qsar_done  = True
 
 # single button for both steps
-if st.button("Generate & Predict", key="run_fp_qsar", type="primary"):
+if st.button("Predict", key="run_fp_qsar", type="primary"):
     if 'df_select' not in st.session_state:
         flexible_callout(
             message="Please complete Step 3 first.",
