@@ -202,64 +202,64 @@ def run_qsar_prediction():
 
     # === Consensus Actives ===
     consensus_df = (
-        bin_df[bin_df['active'] == 'Strong'][['ID', 'standardized', 'label_prob', 'active']]
+        bin_df.loc[bin_df['active'] == 'Strong', ['ID', 'standardized', 'label_prob', 'active']]
         .merge(
-            reg_df[reg_df['active'] == 'Strong'][['ID', 'standardized', 'IC50 (nM)']],
+            reg_df.loc[reg_df['active'] == 'Strong', ['ID', 'standardized', 'IC50 (nM)']],
             on=['ID', 'standardized']
         )
     )
 
-    # Save to session state
+    # Lưu kết quả vào session_state
     st.session_state.result     = bin_df
     st.session_state.result_reg = reg_df
     st.session_state.consensus  = consensus_df
     st.session_state.qsar_done  = True
 
-# Always show the Run Prediction button
-if st.button('Run Prediction', key='run_qsar', type='primary'):
-    if 'df_split' not in st.session_state:
+# nút luôn hiện
+if st.button("Run Prediction", key="run_qsar", type="primary"):
+    if "df_split" not in st.session_state:
         flexible_callout(
-            message='Please complete Step 4 first.',
+            message="Please complete Step 4 first.",
             **CALLOUT_CONFIG
         )
     else:
         try:
             run_qsar_prediction()
             flexible_callout(
-                message='🎯 Step 5 completed.',
+                message="🎯 Step 5 completed.",
                 **CALLOUT_CONFIG
             )
         except Exception as e:
             flexible_callout(
-                message=f'❌ Prediction error: {e}',
+                message=f"❌ Prediction error: {e}",
                 **CALLOUT_CONFIG
             )
 
-# Optionally show success message
-if st.session_state.get('qsar_done', False):
-    st.success("✅ Step 5 has been run — results updated below.")
+# Thông báo nếu đã chạy
+if st.session_state.get("qsar_done", False):
+    st.success("✅ Step 5 has been run — results below.")
 
-# Display results
-if st.session_state.get('qsar_done', False):
+# === Hiển thị kết quả ===
+if st.session_state.get("qsar_done", False):
     # Binary Predicted Actives
-    st.subheader('🧪 Binary Predicted Actives (All Compounds)')
-    df_bin = st.session_state.result[['ID', 'standardized', 'active', 'label_prob']]
+    st.subheader("🧪 Binary Predicted Actives (All Compounds)")
+    df_bin = st.session_state.result[['ID', 'standardized', 'active', 'label_prob']].reset_index(drop=True)
     gb1 = GridOptionsBuilder.from_dataframe(df_bin)
     gb1.configure_default_column(filterable=True, sortable=True)
     gb1.configure_column('label_prob', type=['numericColumn'], valueFormatter='x.toFixed(4)')
     AgGrid(df_bin, gridOptions=gb1.build(), height=300, theme='alpine', custom_css=custom_css)
 
     # Regression Predicted Actives
-    st.subheader('📈 Regression Predicted Actives (All Compounds)')
-    df_reg = st.session_state.result_reg[['ID', 'standardized', 'active', 'IC50 (nM)']]
+    st.subheader("📈 Regression Predicted Actives (All Compounds)")
+    df_reg = st.session_state.result_reg[['ID', 'standardized', 'active', 'IC50 (nM)']].reset_index(drop=True)
     gb2 = GridOptionsBuilder.from_dataframe(df_reg)
     gb2.configure_default_column(filterable=True, sortable=True)
     gb2.configure_column('IC50 (nM)', type=['numericColumn'], valueFormatter='x.toFixed(2)')
     AgGrid(df_reg, gridOptions=gb2.build(), height=300, theme='alpine', custom_css=custom_css)
 
     # Consensus Actives
-    st.subheader('📊 Consensus Actives')
-    df_cons = st.session_state.consensus[['ID', 'standardized', 'label_prob', 'IC50 (nM)', 'active']]
+    st.subheader("📊 Consensus Actives")
+    df_cons = st.session_state.consensus[['ID', 'standardized', 'label_prob', 'IC50 (nM)', 'active']].reset_index(drop=True)
     gb3 = GridOptionsBuilder.from_dataframe(df_cons)
     gb3.configure_default_column(filterable=True, sortable=True)
     gb3.configure_column('label_prob', type=['numericColumn'], valueFormatter='x.toFixed(4)')
