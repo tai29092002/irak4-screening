@@ -248,7 +248,7 @@ if st.session_state.get('qsar_done', False):
     gb.configure_default_column(filterable=True, sortable=True)
     gb.configure_column('label_prob', type=['numericColumn'], valueFormatter='x.toFixed(4)')
     gb.configure_column('IC50 (nM)', type=['numericColumn'], valueFormatter='x.toFixed(2)')
-    AgGrid(dfc, gridOptions=gb.build(), height=350, theme='alpine', custom_css=custom_css)
+    AgGrid(dfc, gridOptions=gb.build(), height=250,fit_columns_on_grid_load=True, theme='alpine', custom_css=custom_css)
 
     # Download results CSV (even if empty)
     df_download = st.session_state.get('consensus', pd.DataFrame(columns=['ID','standardized','IC50 (nM)','active']))
