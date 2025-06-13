@@ -103,7 +103,7 @@ if st.button("Process", key="process_step1", type="primary"):
 # Step 2: PAINS Filter
 st.header("Step 2: PAINS Filter")
 
-if st.button("Process", key="process_step2", type="primary"):
+if st.button("Screening", key="process_step2", type="primary"):
     if 'df_standardized' not in st.session_state:
         flexible_callout(message="Please complete Step 1 first.", **CALLOUT_CONFIG)
     else:
@@ -145,8 +145,8 @@ if st.button("Process", key="process_step2", type="primary"):
         )
 
         
-# === Step 3: Fingerprints & QSAR Screening ===
-st.header("Step 3: QSAR Screening")
+# === Step 3: Fingerprints & QSAR Prediction ===
+st.header("Step 3: QSAR Prediction")
 
 def compute_fp_and_qsar():
     # 1) Compute ECFP4 fingerprints
