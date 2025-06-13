@@ -199,7 +199,7 @@ import pandas as pd
 import streamlit as st
 from st_aggrid import AgGrid, GridOptionsBuilder
 
-# === Step 5: IRAK4 QSAR Screening ===
+# Step 5: IRAK4 QSAR Screening
 st.header("Step 5: IRAK4 QSAR Screening")
 
 def run_qsar_prediction():
@@ -236,13 +236,12 @@ def run_qsar_prediction():
     # Add active column for regression: strong if label == 1 else weak
     reg_df['active'] = np.where(reg_df['label'] == 1, 'strong', 'weak')
 
-    # Consensus Actives
-    consensus_df = bin_df[bin_df['label'] == 1].merge(
-        reg_df[reg_df['label'] == 1],
+    # Consensus Actives: merge only relevant columns to avoid duplicate 'active'
+    consensus_df = bin_df.loc[bin_df['label'] == 1, ['ID', 'standardized', 'label_prob', 'active']]
+    consensus_df = consensus_df.merge(
+        reg_df.loc[reg_df['label'] == 1, ['ID', 'standardized', 'predicted_pIC50']],
         on=['ID', 'standardized']
-    )[[
-        'ID', 'standardized', 'label_prob', 'predicted_pIC50', 'active'
-    ]]
+    )
 
     # Save to session_state
     st.session_state.result     = bin_df
@@ -273,12 +272,11 @@ if not st.session_state.get('qsar_done', False):
 else:
     st.success('✅ You\'ve already run Step 5 - no need to click again.')
 
+# Display results if done
 if st.session_state.get('qsar_done', False):
     # Binary Predicted Actives (All Compounds)
     st.subheader('🧪 Binary Predicted Actives (All Compounds)')
-    df_binary_all = st.session_state.result[[
-        'ID', 'standardized', 'active', 'label_prob'
-    ]]
+    df_binary_all = st.session_state.result[['ID', 'standardized', 'active', 'label_prob']]
     gb_bin = GridOptionsBuilder.from_dataframe(df_binary_all)
     gb_bin.configure_default_column(filterable=True, sortable=True)
     gb_bin.configure_column(
@@ -294,9 +292,7 @@ if st.session_state.get('qsar_done', False):
 
     # Regression Predicted Actives (All Compounds)
     st.subheader('📈 Regression Predicted Actives (All Compounds)')
-    df_reg_all = st.session_state.result_reg[[
-        'ID', 'standardized', 'active', 'predicted_pIC50'
-    ]]
+    df_reg_all = st.session_state.result_reg[['ID', 'standardized', 'active', 'predicted_pIC50']]
     gb_reg = GridOptionsBuilder.from_dataframe(df_reg_all)
     gb_reg.configure_default_column(filterable=True, sortable=True)
     gb_reg.configure_column(
@@ -312,9 +308,7 @@ if st.session_state.get('qsar_done', False):
 
     # Consensus Actives
     st.subheader('📊 Consensus Actives')
-    consensus_df = st.session_state.consensus[[
-        'ID', 'standardized', 'label_prob', 'predicted_pIC50', 'active'
-    ]]
+    consensus_df = st.session_state.consensus[['ID', 'standardized', 'label_prob', 'predicted_pIC50', 'active']]
     gb_cons = GridOptionsBuilder.from_dataframe(consensus_df)
     gb_cons.configure_default_column(filterable=True, sortable=True)
     gb_cons.configure_column(
@@ -330,8 +324,6 @@ if st.session_state.get('qsar_done', False):
         theme='alpine',
         custom_css=custom_css
     )
-
-
     # Download CSV
     csv = consensus_df.to_csv(index=False).encode('utf-8')
     st.download_button(
