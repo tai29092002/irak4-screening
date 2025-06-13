@@ -34,53 +34,16 @@ flexible_callout(
     **CALLOUT_CONFIG  # <-- unpack dict
 )
 # === 1. UPLOAD ===
-st.header("Step 1: Upload and extract ID & SMILES")
+sst.header("Step 1+2: Create and Standardize Dataset")
 
-uploaded_file = st.file_uploader("Upload a CSV file", type=['csv'])
+# Inputs
+uploaded_file = st.file_uploader("Upload a CSV file (optional)", type=['csv'])
 id_col = st.text_input("ID column (optional)", value="", placeholder="e.g. Molecule_Name")
-smiles_col = st.text_input("SMILES column (required)", value="", placeholder="e.g. SMILES")
+smiles_col = st.text_input("SMILES column (required if CSV)", value="", placeholder="e.g. SMILES")
+st.markdown("**Or manually input SMILES below:** one per line or with optional ID prefix separated by comma")
+manual_smiles_input = st.text_area("Manual SMILES input", height=150, placeholder="CCO\nmol1,CCN\nmol2,CCC")
 
-st.markdown("**Or manually input SMILES below (one per line, optional IDs separated by comma):**")
-manual_smiles_input = st.text_area("Manual SMILES input", height=150, placeholder="CCO\nmolecule1,CCN\nmolecule2,CCC")
-
-if st.button("Create Dataset", type="primary"):
-    if manual_smiles_input.strip():  # Nếu có nhập tay thì ưu tiên xử lý
-        data = []
-        for line in manual_smiles_input.strip().splitlines():
-            parts = [x.strip() for x in line.split(',')]
-            if len(parts) == 2:
-                data.append({'ID': parts[0], 'SMILES': parts[1]})
-            elif len(parts) == 1:
-                data.append({'ID': f"molecule{len(data)+1}", 'SMILES': parts[0]})
-            else:
-                st.warning(f"Line skipped due to format: {line}")
-        df_new = pd.DataFrame(data)
-        st.session_state.df_new = df_new
-        flexible_callout(message="🎯 Step 1 completed (manual input).", **CALLOUT_CONFIG)
-    elif uploaded_file is None:
-        flexible_callout(message="Please upload file or input SMILES manually.", **CALLOUT_CONFIG)
-    elif not smiles_col.strip():
-        st.warning("Please enter SMILES column name.")
-    else:
-        df = pd.read_csv(uploaded_file)
-        if smiles_col not in df.columns:
-            st.error(f"Column '{smiles_col}' not found.")
-        else:
-            ids = df[id_col] if id_col and id_col in df.columns else [f"molecule{i+1}" for i in range(len(df))]
-            df_new = pd.DataFrame({'ID': ids, 'SMILES': df[smiles_col]})
-            st.session_state.df_new = df_new
-            flexible_callout(message="🎯 Step 1 completed (from file).", **CALLOUT_CONFIG)
-
-    if "df_new" in st.session_state:
-        gb = GridOptionsBuilder.from_dataframe(st.session_state.df_new)
-        gb.configure_default_column(filterable=True, sortable=True)
-        grid_options = gb.build()
-        AgGrid(st.session_state.df_new, gridOptions=grid_options, height=300, theme="alpine", custom_css=custom_css)
-
-
-# === 2. STANDARDIZATION ===
-st.header("Step 2: Standardize")
-
+# Standardization helper
 def standardize_smiles(batch):
     uc = rdMolStandardize.Uncharger()
     md = rdMolStandardize.MetalDisconnector()
@@ -99,32 +62,47 @@ def standardize_smiles(batch):
                 mol = reionizer.reionize(mol)
                 mol = md.Disconnect(mol)
                 mol = te.Canonicalize(mol)
-                result.append(Chem.MolToSmiles(mol))
+                result.append(Chem.MolToSmiles(mol, isomericSmiles=True))
             else:
                 result.append(None)
-        except:
+        except Exception:
             result.append(None)
     return result
 
-if st.button("Standardize", type="primary"):
-    if "df_new" in st.session_state:
-        df = st.session_state.df_new.copy()
-        df["standardized"] = standardize_smiles(df.SMILES)
-        st.session_state.df_standardized = df
-        flexible_callout(
-            message="🎯 Step 2 completed.",
-            **CALLOUT_CONFIG  # <-- unpack dict
-        )
-        # Hiển thị bằng AgGrid
-        gb = GridOptionsBuilder.from_dataframe(df)
-        gb.configure_default_column(filterable=True, sortable=True)
-        grid_options = gb.build()
-        AgGrid(df, gridOptions=grid_options, height=300, theme="alpine",custom_css=custom_css)
+# Single button for both steps
+if st.button("Process and Standardize", type="primary"):
+    # Step 1: build df_new
+    data = []
+    if manual_smiles_input.strip():
+        for line in manual_smiles_input.splitlines():
+            parts = [x.strip() for x in line.split(',')]
+            if len(parts) == 2:
+                data.append({'ID': parts[0], 'SMILES': parts[1]})
+            elif len(parts) == 1:
+                data.append({'ID': f"molecule{len(data)+1}", 'SMILES': parts[0]})
+            else:
+                st.warning(f"Line skipped: {line}")
+    elif uploaded_file is not None and smiles_col:
+        df = pd.read_csv(uploaded_file)
+        if smiles_col not in df.columns:
+            st.error(f"Column '{smiles_col}' not found in CSV.")
+        else:
+            ids = df[id_col] if id_col and id_col in df.columns else [f"molecule{i+1}" for i in range(len(df))]
+            for i, smi in enumerate(df[smiles_col]):
+                data.append({'ID': ids[i], 'SMILES': smi})
     else:
-        flexible_callout(
-            message="Please complete Step 1 first.",
-            **CALLOUT_CONFIG  # <-- unpack dict
-        )
+        st.error("Please upload a CSV or input SMILES manually.")
+
+    # If dataset created, standardize
+    if data:
+        df_new = pd.DataFrame(data)
+        df_new['standardized'] = standardize_smiles(df_new['SMILES'])
+        st.session_state.df_standardized = df_new
+        flexible_callout(message="🎯 Steps 1+2 completed.", **CALLOUT_CONFIG)
+        # Display
+        gb = GridOptionsBuilder.from_dataframe(df_new)
+        gb.configure_default_column(filterable=True, sortable=True)
+        AgGrid(df_new, gridOptions=gb.build(), height=350, theme='alpine', custom_css=custom_css)
 
 # === 3. PAINS FILTER ===
 st.header("Step 3: PAINS Filter")
