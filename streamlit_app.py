@@ -262,7 +262,7 @@ if st.session_state.get('qsar_done', False):
     st.subheader("📊 Consensus Actives")
     dfc = (
         st.session_state.consensus
-        [['ID', 'standardized', 'IC50 (nM)', 'active']]
+        [['ID', 'standardized', 'active', 'IC50 (nM)']]
         .reset_index(drop=True)
     )
     gb_cons = GridOptionsBuilder.from_dataframe(dfc)
