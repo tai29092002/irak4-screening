@@ -205,7 +205,7 @@ def compute_fp_and_qsar():
     st.session_state.qsar_done  = True
 
 # single button for both steps
-if st.button("Predict", key="run_fp_qsar", type="primary"):
+if st.button("Screening", key="run_fp_qsar", type="primary"):
     if 'df_select' not in st.session_state:
         flexible_callout(
             message="Please complete Step 3 first.",
