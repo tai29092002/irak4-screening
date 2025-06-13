@@ -208,10 +208,10 @@ if st.button("Predict", key="run_fp_qsar", type="primary"):
 
 # show results and download
 if st.session_state.get('qsar_done', False):
-    st.success("✅ Fingerprints & QSAR done — see results below.")
+    st.success("✅ Screening done — see results below.")
 
-    # --- Binary Predicted Actives (All) ---
-    st.subheader("🧪 Binary Predicted Actives (All)")
+    # --- Binary Prediction ---
+    st.subheader("🧪 Binary Prediction")
     dfb = (
         st.session_state.result
         [['ID', 'standardized', 'active', 'label_prob']]
@@ -234,8 +234,8 @@ if st.session_state.get('qsar_done', False):
         custom_css=custom_css
     )
 
-    # --- Regression Predicted Actives (All) ---
-    st.subheader("📈 Regression Predicted Actives (All)")
+    # --- Regression Prediction ---
+    st.subheader("📈 Regression Prediction)")
     dfr = (
         st.session_state.result_reg
         [['ID', 'standardized', 'active', 'IC50 (nM)']]
@@ -258,6 +258,29 @@ if st.session_state.get('qsar_done', False):
         custom_css=custom_css
     )
 
+    # --- Consensus Actives ---
+    st.subheader("📊 Consensus Actives")
+    dfc = (
+        st.session_state.consensus
+        [['ID', 'standardized', 'IC50 (nM)', 'active']]
+        .reset_index(drop=True)
+    )
+    gb_cons = GridOptionsBuilder.from_dataframe(dfc)
+    gb_cons.configure_default_column(filterable=True, sortable=True)
+    gb_cons.configure_column(
+        'IC50 (nM)',
+        type=['numericColumn'],
+        valueFormatter='x.toFixed(2)'
+    )
+    gb_cons.configure_grid_options(suppressRowNumbers=True)
+    AgGrid(
+        dfc,
+        gridOptions=gb_cons.build(),
+        height=250,
+        fit_columns_on_grid_load=True,
+        theme='alpine',
+        custom_css=custom_css
+    )
 
     # Download results CSV (even if empty)
     df_download = st.session_state.get('consensus', pd.DataFrame(columns=['ID','standardized','IC50 (nM)','active']))
