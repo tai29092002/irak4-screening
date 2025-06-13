@@ -109,7 +109,7 @@ st.header("Step 2: PAINS Filter")
 
 if st.button("Process", type="primary"):
     if "df_standardized" in st.session_state:
-        df = st.session_state.df_standardized.copy()
+        df = st.session_state.df_new.copy()
         params = FilterCatalogParams()
         params.AddCatalog(FilterCatalogParams.FilterCatalogs.PAINS)
         catalog = FilterCatalog(params)
