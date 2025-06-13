@@ -28,14 +28,14 @@ CALLOUT_CONFIG = {
     "margin_bottom": 10
 }
 
-st.title('IRAK4 SCREENING')
+st.title('IRAK4 QSAR SCREENING')
 flexible_callout(
     message="This application is designed to predict potent IRAK4 inhibitors",
     **CALLOUT_CONFIG  # <-- unpack dict
 )
 
 # === 1. UPLOAD & STANDARDIZE ===
-st.header("Step 1: Input and Standardize")
+st.header("Step 1: Input Data")
 
 uploaded_file      = st.file_uploader("Upload a CSV file (optional)", type=['csv'])
 id_col             = st.text_input("ID column (optional)", value="", placeholder="e.g. Molecule_Name")
@@ -101,49 +101,49 @@ if st.button("Process", key="process_step1", type="primary"):
         AgGrid(df_new, gridOptions=gb.build(), height=250, theme='alpine', custom_css=custom_css)
 
 # Step 2: PAINS Filter
-st.header("Step 2: PAINS Filter")
+if not st.session_state.get("qsar_done", False):
+    st.header("Step 2: PAINS Filter")
 
-if st.button("Screening", key="process_step2", type="primary"):
-    if 'df_standardized' not in st.session_state:
-        flexible_callout(message="Please complete Step 1 first.", **CALLOUT_CONFIG)
-    else:
-        df = st.session_state.df_standardized.copy()
-        total = len(df)
-
-        # prepare PAINS catalog
-        params  = FilterCatalogParams()
-        params.AddCatalog(FilterCatalogParams.FilterCatalogs.PAINS)
-        catalog = FilterCatalog(params)
-
-        # filter out PAINS matches
-        clean = []
-        for _, row in df.iterrows():
-            mol = Chem.MolFromSmiles(row['standardized'])
-            if mol and not catalog.GetFirstMatch(mol):
-                clean.append(row)
-
-        raw_pains = pd.DataFrame(clean)
-        st.session_state.df_select = raw_pains
-
-        # display success message
-        passed = len(raw_pains)
-        failed = total - passed
-        if failed == 0:
-            st.success(f"No PAINS found. All {passed} compounds passed the filter.")
+    if st.button("Screening", key="process_step2", type="primary"):
+        if 'df_standardized' not in st.session_state:
+            flexible_callout(message="Please complete Step 1 first.", **CALLOUT_CONFIG)
         else:
-            st.success(f"{passed} compounds passed (no PAINS), {failed} compounds flagged by PAINS.")
+            df = st.session_state.df_standardized.copy()
+            total = len(df)
 
-        # show the filtered table
-        gb = GridOptionsBuilder.from_dataframe(raw_pains)
-        gb.configure_default_column(filterable=True, sortable=True)
-        AgGrid(
-            raw_pains,
-            gridOptions=gb.build(),
-            height=250,
-            theme="alpine",
-            custom_css=custom_css
-        )
+            # build PAINS catalog
+            params  = FilterCatalogParams()
+            params.AddCatalog(FilterCatalogParams.FilterCatalogs.PAINS)
+            catalog = FilterCatalog(params)
 
+            # filter
+            clean = []
+            for _, row in df.iterrows():
+                mol = Chem.MolFromSmiles(row['standardized'])
+                if mol and not catalog.GetFirstMatch(mol):
+                    clean.append(row)
+
+            raw_pains = pd.DataFrame(clean)
+            st.session_state.df_select = raw_pains
+
+            # report counts
+            passed = len(raw_pains)
+            failed = total - passed
+            if failed == 0:
+                st.success(f"No PAINS found. All {passed} compounds passed the filter.")
+            else:
+                st.success(f"{passed} compounds passed (no PAINS), {failed} flagged by PAINS.")
+
+            # show table
+            gb = GridOptionsBuilder.from_dataframe(raw_pains)
+            gb.configure_default_column(filterable=True, sortable=True)
+            AgGrid(
+                raw_pains,
+                gridOptions=gb.build(),
+                height=250,
+                theme="alpine",
+                custom_css=custom_css
+            )
         
 # === Step 3: Fingerprints & QSAR Prediction ===
 st.header("Step 3: QSAR Prediction")
