@@ -193,6 +193,7 @@ if st.button("Generate",type="primary"):
         )
 
 # === 5. QSAR SCREENING ===
+# === Step 5: IRAK4 QSAR Screening ===
 st.header("Step 5: IRAK4 QSAR Screening")
 
 def run_qsar_prediction():
@@ -210,7 +211,9 @@ def run_qsar_prediction():
         'label_prob': prob_bin,
         'label': (prob_bin >= 0.5).astype(int)
     })
+    # làm tròn và thêm cột 'active'
     bin_df['label_prob'] = bin_df['label_prob'].round(4)
+    bin_df['active'] = np.where(bin_df['label_prob'] > 0.5, 'strong', 'weak')
 
     # === Regression Prediction ===
     with open('model1/xgb_regression_764_tuned.pkl', 'rb') as f:
@@ -228,7 +231,7 @@ def run_qsar_prediction():
     # === Consensus Actives ===
     consensus_df = bin_df[bin_df.label == 1].merge(
         reg_df[reg_df.label == 1], on=['ID', 'standardized']
-    )[['ID', 'standardized', 'label_prob', 'predicted_pIC50']]
+    )[['ID', 'standardized', 'label_prob', 'predicted_pIC50', 'active']]
 
     # Lưu vào session_state
     st.session_state.result = bin_df
@@ -237,45 +240,51 @@ def run_qsar_prediction():
     st.session_state.qsar_done = True
 
 # Nút chạy
-if st.button("Run Prediction",type="primary"):
+if st.button("Run Prediction", type="primary"):
     if "df_split" not in st.session_state:
         flexible_callout(
             message="Please complete Step 4 first.",
-            **CALLOUT_CONFIG  # <-- unpack dict
+            **CALLOUT_CONFIG
         )
     else:
         try:
             run_qsar_prediction()
             flexible_callout(
                 message="🎯 Step 5 completed.",
-                **CALLOUT_CONFIG  # <-- unpack dict
+                **CALLOUT_CONFIG
             )
         except Exception as e:
             flexible_callout(
-                message="❌ Prediction error: {e}",
-                **CALLOUT_CONFIG  # <-- unpack dict
+                message=f"❌ Prediction error: {e}",
+                **CALLOUT_CONFIG
             )
+
 # Hiển thị kết quả nếu có
 if st.session_state.get("qsar_done", False):
     # === Binary ===
     st.subheader("🧪 Binary Predicted Actives")
     df_binary_active = st.session_state.result.copy()
-    df_binary_active = df_binary_active[df_binary_active['label'] == 1][['ID', 'standardized', 'label_prob']]
+    # chỉ hiển thị những hàng đã qua sàng (label == 1)
+    df_binary_active = df_binary_active[df_binary_active['label'] == 1][
+        ['ID', 'standardized', 'label_prob', 'active']
+    ]
     gb_bin = GridOptionsBuilder.from_dataframe(df_binary_active)
     gb_bin.configure_default_column(filterable=True, sortable=True)
     gb_bin.configure_column("label_prob", type=["numericColumn"], valueFormatter="x.toFixed(4)")
     grid_options_bin = gb_bin.build()
-    AgGrid(df_binary_active, gridOptions=grid_options_bin, height=300, theme='alpine',custom_css=custom_css)
+    AgGrid(df_binary_active, gridOptions=grid_options_bin, height=300, theme='alpine', custom_css=custom_css)
 
     # === Regression ===
     st.subheader("📈 Regression Predicted Actives")
     df_reg_active = st.session_state.result_reg.copy()
-    df_reg_active = df_reg_active[df_reg_active['label'] == 1][['ID', 'standardized', 'predicted_pIC50']]
+    df_reg_active = df_reg_active[df_reg_active['label'] == 1][
+        ['ID', 'standardized', 'predicted_pIC50']
+    ]
     gb_reg = GridOptionsBuilder.from_dataframe(df_reg_active)
     gb_reg.configure_default_column(filterable=True, sortable=True)
     gb_reg.configure_column("predicted_pIC50", type=["numericColumn"], valueFormatter="x.toFixed(4)")
     grid_options_reg = gb_reg.build()
-    AgGrid(df_reg_active, gridOptions=grid_options_reg, height=300, theme='alpine',custom_css=custom_css)
+    AgGrid(df_reg_active, gridOptions=grid_options_reg, height=300, theme='alpine', custom_css=custom_css)
 
     # === Consensus ===
     st.subheader("📊 Consensus Actives")
@@ -285,7 +294,8 @@ if st.session_state.get("qsar_done", False):
     gb_consensus.configure_column("label_prob", type=["numericColumn"], valueFormatter="x.toFixed(4)")
     gb_consensus.configure_column("predicted_pIC50", type=["numericColumn"], valueFormatter="x.toFixed(4)")
     grid_options_consensus = gb_consensus.build()
-    AgGrid(consensus_df, gridOptions=grid_options_consensus, height=400, theme='alpine',custom_css=custom_css)
+    AgGrid(consensus_df, gridOptions=grid_options_consensus, height=400, theme='alpine', custom_css=custom_css)
+
 
     # Download CSV
     csv = consensus_df.to_csv(index=False).encode('utf-8')
