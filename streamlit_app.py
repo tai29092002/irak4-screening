@@ -34,7 +34,7 @@ flexible_callout(
     **CALLOUT_CONFIG  # <-- unpack dict
 )
 # === 1. UPLOAD ===
-sst.header("Step 1+2: Create and Standardize Dataset")
+st.header("Step 1+2: Create and Standardize Dataset")
 
 # Inputs
 uploaded_file = st.file_uploader("Upload a CSV file (optional)", type=['csv'])
