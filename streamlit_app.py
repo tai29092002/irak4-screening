@@ -33,23 +33,22 @@ flexible_callout(
     message="This application is designed to predict potent IRAK4 inhibitors",
     **CALLOUT_CONFIG  # <-- unpack dict
 )
-# === 1. UPLOAD ===
-st.header("Step 1: Input")
 
-# Inputs
-uploaded_file = st.file_uploader("Upload a CSV file (optional)", type=['csv'])
-id_col = st.text_input("ID column (optional)", value="", placeholder="e.g. Molecule_Name")
-smiles_col = st.text_input("SMILES column (required if CSV)", value="", placeholder="e.g. SMILES")
+# === 1. UPLOAD & STANDARDIZE ===
+st.header("Step 1: Input and Standardize")
+
+uploaded_file      = st.file_uploader("Upload a CSV file (optional)", type=['csv'])
+id_col             = st.text_input("ID column (optional)", value="", placeholder="e.g. Molecule_Name")
+smiles_col         = st.text_input("SMILES column (required if CSV)", value="", placeholder="e.g. SMILES")
 st.markdown("**Or manually input SMILES below:** one per line or with optional ID prefix separated by comma")
 manual_smiles_input = st.text_area("Manual SMILES input", height=150, placeholder="CCO\nmol1,CCN\nmol2,CCC")
 
-# Standardization helper
 def standardize_smiles(batch):
-    uc = rdMolStandardize.Uncharger()
-    md = rdMolStandardize.MetalDisconnector()
-    te = rdMolStandardize.TautomerEnumerator()
-    reionizer = rdMolStandardize.Reionizer()
-    result = []
+    uc          = rdMolStandardize.Uncharger()
+    md          = rdMolStandardize.MetalDisconnector()
+    te          = rdMolStandardize.TautomerEnumerator()
+    reionizer   = rdMolStandardize.Reionizer()
+    result      = []
     for smi in batch:
         try:
             mol = Chem.MolFromSmiles(smi)
@@ -65,13 +64,11 @@ def standardize_smiles(batch):
                 result.append(Chem.MolToSmiles(mol, isomericSmiles=True))
             else:
                 result.append(None)
-        except Exception:
+        except:
             result.append(None)
     return result
 
-# Single button for both steps
-if st.button("Process", type="primary"):
-    # Step 1: build df_new
+if st.button("Process", key="process_step1", type="primary"):
     data = []
     if manual_smiles_input.strip():
         for line in manual_smiles_input.splitlines():
@@ -83,63 +80,53 @@ if st.button("Process", type="primary"):
             else:
                 st.warning(f"Line skipped: {line}")
     elif uploaded_file is not None and smiles_col:
-        df = pd.read_csv(uploaded_file)
-        if smiles_col not in df.columns:
+        df0 = pd.read_csv(uploaded_file)
+        if smiles_col not in df0.columns:
             st.error(f"Column '{smiles_col}' not found in CSV.")
         else:
-            ids = df[id_col] if id_col and id_col in df.columns else [f"molecule{i+1}" for i in range(len(df))]
-            for i, smi in enumerate(df[smiles_col]):
+            ids = df0[id_col] if id_col and id_col in df0.columns else [f"molecule{i+1}" for i in range(len(df0))]
+            for i, smi in enumerate(df0[smiles_col]):
                 data.append({'ID': ids[i], 'SMILES': smi})
     else:
         st.error("Please upload a CSV or input SMILES manually.")
 
-    # If dataset created, standardize
     if data:
         df_new = pd.DataFrame(data)
         df_new['standardized'] = standardize_smiles(df_new['SMILES'])
         st.session_state.df_standardized = df_new
-        flexible_callout(message="🎯 Steps 1 completed.", **CALLOUT_CONFIG)
-        # Display
+        flexible_callout(message="🎯 Step 1 completed.", **CALLOUT_CONFIG)
+
         gb = GridOptionsBuilder.from_dataframe(df_new)
         gb.configure_default_column(filterable=True, sortable=True)
-        AgGrid(df_new, gridOptions=gb.build(), height=350, theme='alpine', custom_css=custom_css)
+        AgGrid(df_new, gridOptions=gb.build(), height=300, theme='alpine', custom_css=custom_css)
 
-# === 3. PAINS FILTER ===
+
+# === 2. PAINS FILTER ===
 st.header("Step 2: PAINS Filter")
 
-if st.button("Process", type="primary"):
-    if "df_standardized" in st.session_state:
-        df = st.session_state.df_new.copy()
-        params = FilterCatalogParams()
+if st.button("Process", key="process_step2", type="primary"):
+    if 'df_standardized' not in st.session_state:
+        flexible_callout(message="Please complete Step 1 first.", **CALLOUT_CONFIG)
+    else:
+        df = st.session_state.df_standardized.copy()
+        params  = FilterCatalogParams()
         params.AddCatalog(FilterCatalogParams.FilterCatalogs.PAINS)
         catalog = FilterCatalog(params)
-        clean, matches = [], []
 
+        clean = []
         for _, row in df.iterrows():
             mol = Chem.MolFromSmiles(row['standardized'])
-            if mol and catalog.GetFirstMatch(mol):
-                matches.append(row)
-            elif mol:
+            if mol and not catalog.GetFirstMatch(mol):
                 clean.append(row)
 
         raw_pains = pd.DataFrame(clean)
-        st.session_state.df_select = raw_pains.copy()
-        flexible_callout(
-            message="🎯 Step 3 completed.",
-            **CALLOUT_CONFIG  # <-- unpack dict
-        )
+        st.session_state.df_select = raw_pains
+        flexible_callout(message="🎯 Step 2 completed.", **CALLOUT_CONFIG)
 
-        # Hiển thị bảng raw_pains bằng AgGrid
         gb = GridOptionsBuilder.from_dataframe(raw_pains)
         gb.configure_default_column(filterable=True, sortable=True)
-        grid_options = gb.build()
-        AgGrid(raw_pains, gridOptions=grid_options, height=300, theme="alpine",custom_css=custom_css)
-    else:
-        flexible_callout(
-            message="Please complete Step 2 first.",
-            **CALLOUT_CONFIG  # <-- unpack dict
-        )
-
+        AgGrid(raw_pains, gridOptions=gb.build(), height=300, theme="alpine", custom_css=custom_css)
+        
 # === Step 4+5: Fingerprints & QSAR Screening ===
 st.header("Step 3: Screening")
 
