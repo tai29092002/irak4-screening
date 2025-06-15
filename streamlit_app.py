@@ -41,8 +41,8 @@ st.markdown("**Upload a CSV file:**")
 uploaded_file      = st.file_uploader("Upload here", type=['csv'])
 id_col             = st.text_input("ID column (optional)", value="", placeholder="e.g. Molecule_Name")
 smiles_col         = st.text_input("SMILES column (required)", value="", placeholder="e.g. SMILES")
-st.markdown("**Or manually input SMILES below:** one per line or with optional ID prefix separated by comma")
-manual_smiles_input = st.text_area("Manual SMILES input", height=150, placeholder="CCO\nmol1,CCN\nmol2,CCC")
+st.markdown("**Or manually input SMILES below:** one per line and with ID (optional) separated by comma")
+manual_smiles_input = st.text_area("Manual SMILES input", height=150, placeholder="CCO\nmol1,CCN\nmol2,")
 
 def standardize_smiles(batch):
     uc        = rdMolStandardize.Uncharger()
@@ -325,7 +325,7 @@ if st.session_state.get('qsar_done', False):
     st.download_button(
         label="📥 Download Result",
         data=csv,
-        file_name='screening_result.csv',
+        file_name='IRAK4_screening_result.csv',
         mime='text/csv'
     )
 
