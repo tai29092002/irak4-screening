@@ -37,7 +37,8 @@ flexible_callout(
 # === 1. UPLOAD & STANDARDIZE ===
 st.header("Step 1: Input Data")
 
-uploaded_file      = st.file_uploader("Upload a CSV file (optional)", type=['csv'])
+st.markdown("**Upload a CSV file:**)
+uploaded_file      = st.file_uploader("Upload here", type=['csv'])
 id_col             = st.text_input("ID column (optional)", value="", placeholder="e.g. Molecule_Name")
 smiles_col         = st.text_input("SMILES column (required)", value="", placeholder="e.g. SMILES")
 st.markdown("**Or manually input SMILES below:** one per line or with optional ID prefix separated by comma")
